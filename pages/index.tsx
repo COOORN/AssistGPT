@@ -15,7 +15,7 @@ import {
 } from "langchain/prompts";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { CharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 const key = "ENTER KEY HERE";
 
@@ -27,7 +27,7 @@ export default function Home() {
   const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      "You are a helpful AI assistant. This is the history of your conversation so far: {history}"
+      "You are a helpful AI assistant. You have long term memory. This is the history of your conversation so far with this user: {history}"
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
   ]);
@@ -50,10 +50,14 @@ export default function Home() {
     for (let i = 0; i < updatedMessages.length; i++) {
       messageHistory = messageHistory.concat(`${updatedMessages[i].role}: ${updatedMessages[i].content}; `)
     }
+
+
     if (localStorage.getItem("history") !== null){
       const contextInjection = await handleLoad(message.content);
       messageHistory = messageHistory.concat(String(contextInjection));
     }
+    console.log(messageHistory)
+
     const response = await chain.call({history: messageHistory, text: message.content});
 
     let isFirst = true;
@@ -86,7 +90,7 @@ export default function Home() {
     setMessages([
       {
         role: "assistant",
-        content: `Hi there! I'm Chatbot UI, an AI assistant. I can help you with things like answering questions, providing information, and helping with tasks. How can I help you?`
+        content: `Hi there!`
       }
     ]);
   };
@@ -98,7 +102,7 @@ export default function Home() {
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
-      const dateString = `~// ON YEAR-${year} MONTH-${month} DAY-${day}:`;
+      const dateString = `~// ON ${year}-${month}-${day}:`;
       messageHistory = `${dateString}: `; 
       for (let i = 0; i < messages.length; i++) {
         messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content}; `)
@@ -112,7 +116,7 @@ export default function Home() {
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
-      const dateString = `~// ON YEAR-${year} MONTH-${month} DAY-${day}:`;
+      const dateString = `ON ${year}-${month}-${day}:`;
       messageHistory = String(localStorage.getItem("history"));
       messageHistory = messageHistory.concat(`${dateString}: `); 
       for (let i = 0; i < messages.length; i++) {
@@ -126,13 +130,13 @@ export default function Home() {
   const handleLoad = async (message:string) => {
     if (localStorage.getItem("history") !== null){
       const messageHistory:string = String(localStorage.getItem("history"));
-      const splitter = new CharacterTextSplitter({separator: "~// ON "});
+      const splitter = new RecursiveCharacterTextSplitter();
       const output = await splitter.createDocuments([messageHistory]);
       const vectorStore = await MemoryVectorStore.fromDocuments(
         output,
         new OpenAIEmbeddings({openAIApiKey: key})
       );
-      const results = await vectorStore.similaritySearch(message, 5);
+      const results = await vectorStore.similaritySearch(message, 2);
       let resultConcat = "";
       for (let i = 0; i < results.length; i++) {
         resultConcat = resultConcat.concat(`${results[i].pageContent};`)
@@ -149,7 +153,7 @@ export default function Home() {
     setMessages([
       {
         role: "assistant",
-        content: `Hi there! I'm Chatbot UI, an AI assistant. I can help you with things like answering questions, providing information, and helping with tasks. How can I help you?`
+        content: `Hi there!`
       }
     ]);
   }, []);
