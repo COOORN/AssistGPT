@@ -120,7 +120,7 @@ export default function Home() {
       }
       localStorage.setItem("history", messageHistory);
     }
-    
+    handleReset();
   };
 
   const handleLoad = async (message:string) => {
