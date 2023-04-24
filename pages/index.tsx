@@ -129,7 +129,7 @@ export default function Home() {
       localStorage.setItem("importantItems", dateString.concat(importantItems.text));
     }
     else {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates.`)])
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates.`)])
       localStorage.setItem("importantItems",String(dateString.concat(importantItems.text)));
     }
     handleReset();
