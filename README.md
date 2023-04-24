@@ -1,7 +1,5 @@
-# A fork of Chatbot UI Lite using Langchain to further simplify it
-I will also try to add some extra features to it, such as long term memory(done), task management(done somewhat), and note-taking in the additional-features branch
+A GPT client that has long term memory. Designed to be an assistant for task management and productivity in general
 
-USE ADDITIONAL-FEATURES BRANCH FOR MOST EXTRA FEATURES, MAIN(SPECIFICALLY APRIL 21 COMMIT) FOR BARE BONES FEATURES ONLY
 
 ### To - do not in any order:
  - Web browsing

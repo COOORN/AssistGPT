@@ -11,20 +11,21 @@ interface Props {
   messages: Message[];
   loading: boolean;
   onSend: (message: Message) => void;
-  onReset: () => void;
+  //onReset: () => void;
   onSave: () => void;
 }
 
-export const Chat: FC<Props> = ({ messages, loading, onSend, onReset, onSave }) => {
-  return (
-    <>
-      <div className="flex flex-row justify-between items-center mb-4 sm:mb-8">
-        <ResetChat onReset={onReset} />
-      </div>
+export const Chat: FC<Props> = ({ messages, loading, onSend, 
+ // onReset, 
+  onSave }) => {
+  // return (
+  //   <>
+  //     <div className="flex flex-row justify-between items-center mb-4 sm:mb-8">
+  //       ResetChat onReset={onReset} />
+  //     </div>
+      return (
+        <>
 
-      <div className="flex flex-row justify-between items-center mb-4 sm:mb-8">
-        <SaveChat onSave={onSave} />
-      </div>
 
       <div className="flex flex-col rounded-lg px-2 sm:p-4 sm:border border-neutral-300">
         {messages.map((message, index) => (
@@ -45,7 +46,16 @@ export const Chat: FC<Props> = ({ messages, loading, onSend, onReset, onSave }) 
         <div className="mt-4 sm:mt-8 bottom-[56px] left-0 w-full">
           <ChatInput onSend={onSend} />
         </div>
+
+
       </div>
+      <div className="container">
+  <div className="row">
+    <div className="col text-center">
+    <SaveChat onSave={onSave} />
+    </div>
+  </div>
+</div>
     </>
   );
 };

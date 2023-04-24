@@ -15,9 +15,9 @@ import {
 } from "langchain/prompts";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { CharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-const key = "ENTER KEY HERE";
+const key = "INSERT";
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,7 +27,7 @@ export default function Home() {
   const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      "You are a helpful AI assistant. This is the history of your conversation so far: {history}"
+      "You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}"
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
   ]);
@@ -48,14 +48,22 @@ export default function Home() {
 
     let messageHistory = "";
     for (let i = 0; i < updatedMessages.length; i++) {
-      messageHistory = messageHistory.concat(`${updatedMessages[i].role}: ${updatedMessages[i].content}; `)
+      messageHistory = messageHistory.concat(`${updatedMessages[i].role}: ${updatedMessages[i].content};\n `)
     }
+
+
     if (localStorage.getItem("history") !== null){
       const contextInjection = await handleLoad(message.content);
       messageHistory = messageHistory.concat(String(contextInjection));
     }
-    const response = await chain.call({history: messageHistory, text: message.content});
+    console.log(String(localStorage.getItem("importantItems")).concat("\n".concat(messageHistory)))
 
+    if (localStorage.getItem("importantItems") === null) {
+      var response = await chain.call({importantItems: "NONE SO FAR", history: messageHistory, text: message.content});
+    }
+    else {
+      var response = await chain.call({importantItems: String(localStorage.getItem("importantItems")), history: messageHistory, text: message.content});
+    }
     let isFirst = true;
     setLoading(true);
 
@@ -86,53 +94,57 @@ export default function Home() {
     setMessages([
       {
         role: "assistant",
-        content: `Hi there! I'm Chatbot UI, an AI assistant. I can help you with things like answering questions, providing information, and helping with tasks. How can I help you?`
+        content: `Hi there!`
       }
     ]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    let messageHistory:string;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `ON ${year}-${month}-${day}:`;
+
     if (localStorage.getItem("history") === null){
-      let messageHistory:string;
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const dateString = `~// ON YEAR-${year} MONTH-${month} DAY-${day}:`;
       messageHistory = `${dateString}: `; 
       for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content}; `)
+        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
       }
       localStorage.setItem("history", messageHistory);
-      //console.log(localStorage.getItem("history"))
+      
     }
     else {
-      let messageHistory:string;
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const dateString = `~// ON YEAR-${year} MONTH-${month} DAY-${day}:`;
       messageHistory = String(localStorage.getItem("history"));
       messageHistory = messageHistory.concat(`${dateString}: `); 
       for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content}; `)
+        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
       }
       localStorage.setItem("history", messageHistory);
     }
-    
+
+    if (localStorage.getItem("importantItems") === null) {
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates`)])
+      localStorage.setItem("importantItems", dateString.concat(importantItems.text));
+    }
+    else {
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates.`)])
+      localStorage.setItem("importantItems",String(dateString.concat(importantItems.text)));
+    }
+    handleReset();
   };
 
   const handleLoad = async (message:string) => {
     if (localStorage.getItem("history") !== null){
       const messageHistory:string = String(localStorage.getItem("history"));
-      const splitter = new CharacterTextSplitter({separator: "~// ON "});
+      const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:100});
       const output = await splitter.createDocuments([messageHistory]);
       const vectorStore = await MemoryVectorStore.fromDocuments(
         output,
         new OpenAIEmbeddings({openAIApiKey: key})
       );
-      const results = await vectorStore.similaritySearch(message, 5);
+      const results = await vectorStore.similaritySearch(message, 1);
       let resultConcat = "";
       for (let i = 0; i < results.length; i++) {
         resultConcat = resultConcat.concat(`${results[i].pageContent};`)
@@ -149,7 +161,7 @@ export default function Home() {
     setMessages([
       {
         role: "assistant",
-        content: `Hi there! I'm Chatbot UI, an AI assistant. I can help you with things like answering questions, providing information, and helping with tasks. How can I help you?`
+        content: `Hi there!`
       }
     ]);
   }, []);
@@ -157,11 +169,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Chatbot UI</title>
-        <meta
-          name="description"
-          content="A simple chatbot starter kit for OpenAI's chat model using Next.js, TypeScript, and Tailwind CSS."
-        />
+        <title>Assist GPT</title>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1"
@@ -181,7 +189,7 @@ export default function Home() {
               messages={messages}
               loading={loading}
               onSend={handleSend}
-              onReset={handleReset}
+             // onReset={handleReset}
               onSave={handleSave}
             />
             <div ref={messagesEndRef} />
