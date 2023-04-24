@@ -17,7 +17,7 @@ import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-const key = "Enter Key HERE";
+const key = "INSERT";
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,7 +27,7 @@ export default function Home() {
   const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      "You are a helpful AI assistant that helps the user's productivity and task management. You can not set reminders as of yet. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}"
+      "You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}"
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
   ]);
@@ -124,12 +124,13 @@ export default function Home() {
       localStorage.setItem("history", messageHistory);
     }
 
-    const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely.`)])
     if (localStorage.getItem("importantItems") === null) {
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates`)])
       localStorage.setItem("importantItems", dateString.concat(importantItems.text));
     }
     else {
-      localStorage.setItem("importantItems",String(localStorage.getItem("importantItems")).concat(dateString.concat(importantItems.text)));
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates.`)])
+      localStorage.setItem("importantItems",String(dateString.concat(importantItems.text)));
     }
     handleReset();
   };
@@ -168,11 +169,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Chatbot UI</title>
-        <meta
-          name="description"
-          content="A simple chatbot starter kit for OpenAI's chat model using Next.js, TypeScript, and Tailwind CSS."
-        />
+        <title>Assist GPT</title>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1"
@@ -192,7 +189,7 @@ export default function Home() {
               messages={messages}
               loading={loading}
               onSend={handleSend}
-              onReset={handleReset}
+             // onReset={handleReset}
               onSave={handleSave}
             />
             <div ref={messagesEndRef} />
