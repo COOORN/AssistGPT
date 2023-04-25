@@ -36,8 +36,8 @@ export default function Home () {
 
 
       const handleSend = () => {
-        if (!content) {
-          alert("Please enter a message");
+        if (!content && localStorage.getItem("APIKEY") === null) {
+          alert("Please enter a key. No key provided previously either.");
           return;
         }
         localStorage.setItem("APIKEY",content);
