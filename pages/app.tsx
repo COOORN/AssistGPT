@@ -17,24 +17,31 @@ import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-const key = String(localStorage.getItem("APIKEY"));
+let debugString:string;
+let key:string;
+
+const today = new Date();
+const monthNames = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+const dateString = monthNames[today.getMonth()] + " " + today.getDate() + " " + today.getFullYear();
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+
+
+  
+
+  useEffect(() =>
+    {
+      key = String(localStorage.getItem("APIKEY"));
+    }
+  )
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
-  const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(
-      "You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}"
-    ),
-    HumanMessagePromptTemplate.fromTemplate("{text}"),
-  ]);
-  const chain = new LLMChain({
-    prompt:assistantPrompt,
-    llm: chat,
-  });
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,6 +49,18 @@ export default function App() {
 
   const handleSend = async (message: Message) => {
     const updatedMessages = [...messages, message];
+
+      const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
+  const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
+    SystemMessagePromptTemplate.fromTemplate(
+      `You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Today is ${dateString}. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}`
+    ),
+    HumanMessagePromptTemplate.fromTemplate("{text}"),
+  ]);
+  const chain = new LLMChain({
+    prompt:assistantPrompt,
+    llm: chat,
+  });
 
     setMessages(updatedMessages);
     setLoading(true);
@@ -56,7 +75,7 @@ export default function App() {
       const contextInjection = await handleLoad(message.content);
       messageHistory = messageHistory.concat(String(contextInjection));
     }
-    console.log(String(localStorage.getItem("importantItems")).concat("\n".concat(messageHistory)))
+    debugString = String(localStorage.getItem("importantItems")).concat("\n".concat(messageHistory))
 
     if (localStorage.getItem("importantItems") === null) {
       var response = await chain.call({importantItems: "NONE SO FAR", history: messageHistory, text: message.content});
@@ -100,12 +119,15 @@ export default function App() {
   };
 
   const handleSave = async () => {
+    const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
+    const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
+      SystemMessagePromptTemplate.fromTemplate(
+        `You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Today is ${dateString}. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}`
+      ),
+      HumanMessagePromptTemplate.fromTemplate("{text}"),
+    ]);
+
     let messageHistory:string;
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const dateString = `ON ${year}-${month}-${day}:`;
 
     if (localStorage.getItem("history") === null){
       messageHistory = `${dateString}: `; 
@@ -195,6 +217,7 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
         </div>
+        <div className="gap-5"><p className="text-xs">{debugString}</p></div>
         <Footer />
       </div>
     </>
