@@ -18,6 +18,8 @@ import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 let debugString:string;
+//         <div className="gap-5"><p className="text-xs">{debugString}</p></div>
+
 let key:string;
 
 const today = new Date();
@@ -217,7 +219,7 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
         </div>
-        <div className="gap-5"><p className="text-xs">{debugString}</p></div>
+
         <Footer />
       </div>
     </>
