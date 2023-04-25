@@ -6,13 +6,6 @@ interface Props {
 
 export const SaveChat: FC<Props> = ({ onSave }) => {
   return (
-    <div className="flex flex-row items-center">
-      <button
-        className="text-sm sm:text-base text-neutral-900 font-semibold rounded-lg px-4 py-2 bg-neutral-200 hover:bg-neutral-300 focus:outline-none focus:ring-1 focus:ring-neutral-300"
-        onClick={() => onSave()}
-      >
-        Save
-      </button>
-    </div>
+    <button   onClick={() => onSave()} className="block w-full rounded-md bg-blue-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save</button>
   );
 };

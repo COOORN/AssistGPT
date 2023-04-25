@@ -3,171 +3,49 @@ import { Footer } from "@/components/Layout/Footer";
 import { Navbar } from "@/components/Layout/Navbar";
 import { Message } from "@/types";
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
-import { OpenAI } from "langchain/llms/openai";
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
-import { LLMChain } from "langchain/chains";
-import {
-  SystemMessagePromptTemplate,
-  HumanMessagePromptTemplate,
-  ChatPromptTemplate,
-} from "langchain/prompts";
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import Link from "next/link";
+import { FC, KeyboardEvent, useEffect, useRef, useState } from "react";
+import Router from 'next/router'
 
-const key = "INSERT";
+export default function Home () {
+    useEffect(() => {
+        if (localStorage.getItem("APIKEY") !== null){
 
-export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+                Router.push('/app')
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
-  const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(
-      "You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}"
-    ),
-    HumanMessagePromptTemplate.fromTemplate("{text}"),
-  ]);
-  const chain = new LLMChain({
-    prompt:assistantPrompt,
-    llm: chat,
-  });
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleSend = async (message: Message) => {
-    const updatedMessages = [...messages, message];
-
-    setMessages(updatedMessages);
-    setLoading(true);
-
-    let messageHistory = "";
-    for (let i = 0; i < updatedMessages.length; i++) {
-      messageHistory = messageHistory.concat(`${updatedMessages[i].role}: ${updatedMessages[i].content};\n `)
-    }
+                }      
+        else {
+            Router.push('/');
+        }
+            },
+             []);
 
 
-    if (localStorage.getItem("history") !== null){
-      const contextInjection = await handleLoad(message.content);
-      messageHistory = messageHistory.concat(String(contextInjection));
-    }
-    console.log(String(localStorage.getItem("importantItems")).concat("\n".concat(messageHistory)))
+    const [content, setContent] = useState<string>();
 
-    if (localStorage.getItem("importantItems") === null) {
-      var response = await chain.call({importantItems: "NONE SO FAR", history: messageHistory, text: message.content});
-    }
-    else {
-      var response = await chain.call({importantItems: String(localStorage.getItem("importantItems")), history: messageHistory, text: message.content});
-    }
-    let isFirst = true;
-    setLoading(true);
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setContent(e.target.value);
+        }
 
-      if (isFirst) {
-        isFirst = false;
-        setMessages((messages) => [
-          ...messages,
-          {
-            role: "assistant",
-            content: response.text
-          }
-        ]);
-        setLoading(false);
-      } else {
-        setMessages((messages) => {
-          const lastMessage = messages[messages.length - 1];
-          const updatedMessage = {
-            ...lastMessage,
-            content: lastMessage.content + response
-          };
-          setLoading(false);
-          return [...messages.slice(0, -1), updatedMessage];
-        });
-      }
-    }
+    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      };
 
-  const handleReset = () => {
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hi there!`
-      }
-    ]);
-  };
 
-  const handleSave = async () => {
-    let messageHistory:string;
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const dateString = `ON ${year}-${month}-${day}:`;
+      const handleSend = () => {
+        if (!content) {
+          alert("Please enter a message");
+          return;
+        }
+        localStorage.setItem("APIKEY",content);
+        }
+    return (
+        <>
 
-    if (localStorage.getItem("history") === null){
-      messageHistory = `${dateString}: `; 
-      for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
-      }
-      localStorage.setItem("history", messageHistory);
-      
-    }
-    else {
-      messageHistory = String(localStorage.getItem("history"));
-      messageHistory = messageHistory.concat(`${dateString}: `); 
-      for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
-      }
-      localStorage.setItem("history", messageHistory);
-    }
 
-    if (localStorage.getItem("importantItems") === null) {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates`)])
-      localStorage.setItem("importantItems", dateString.concat(importantItems.text));
-    }
-    else {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${String(localStorage.getItem("history"))}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates.`)])
-      localStorage.setItem("importantItems",String(dateString.concat(importantItems.text)));
-    }
-    handleReset();
-  };
-
-  const handleLoad = async (message:string) => {
-    if (localStorage.getItem("history") !== null){
-      const messageHistory:string = String(localStorage.getItem("history"));
-      const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:100});
-      const output = await splitter.createDocuments([messageHistory]);
-      const vectorStore = await MemoryVectorStore.fromDocuments(
-        output,
-        new OpenAIEmbeddings({openAIApiKey: key})
-      );
-      const results = await vectorStore.similaritySearch(message, 1);
-      let resultConcat = "";
-      for (let i = 0; i < results.length; i++) {
-        resultConcat = resultConcat.concat(`${results[i].pageContent};`)
-      }
-      return resultConcat
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hi there!`
-      }
-    ]);
-  }, []);
-
-  return (
-    <>
       <Head>
         <title>Assist GPT</title>
         <meta
@@ -185,18 +63,24 @@ export default function Home() {
 
         <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
           <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
-            <Chat
-              messages={messages}
-              loading={loading}
-              onSend={handleSend}
-             // onReset={handleReset}
-              onSave={handleSave}
-            />
-            <div ref={messagesEndRef} />
+          <div className="sm:col-span- mx-auto">
+        <label for="OpenAI Key" className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key</label>
+        <div className="mt-2.5">
+          <input          
+          value={content}
+        onKeyDown={handleKeyDown} 
+        onChange={handleChange}
+
+ type="text" name="OpenAI Key" id="OpenAI Key" autoComplete="organization" className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+           <Link  href="app/" onClick={handleSend} className="block w-full rounded-md bg-blue-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Go to app</Link>
+
+        </div>
+      </div>
           </div>
         </div>
         <Footer />
       </div>
-    </>
-  );
-  }
+        </>
+
+    );
+  };

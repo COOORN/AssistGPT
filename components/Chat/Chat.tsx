@@ -48,14 +48,10 @@ export const Chat: FC<Props> = ({ messages, loading, onSend,
         </div>
 
 
-      </div>
-      <div className="container">
-  <div className="row">
-    <div className="col text-center">
-    <SaveChat onSave={onSave} />
+      </div> 
+      <div className="mt-10">
+      <SaveChat onSave={onSave}></SaveChat>
     </div>
-  </div>
-</div>
     </>
   );
 };
