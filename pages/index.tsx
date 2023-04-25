@@ -8,17 +8,17 @@ import { FC, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Router from 'next/router'
 
 export default function Home () {
-    useEffect(() => {
-        if (localStorage.getItem("APIKEY") !== null){
+    //useEffect(() => {
+        //if (localStorage.getItem("APIKEY") !== null){
 
-                Router.push('/app')
+                //Router.push('/app')
 
-                }      
-        else {
-            Router.push('/');
-        }
-            },
-             []);
+                //}      
+        //else {
+            //Router.push('/');
+        //}
+            //},
+             //[]);
 
 
     const [content, setContent] = useState<string>();
@@ -64,7 +64,7 @@ export default function Home () {
         <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
           <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
           <div className="sm:col-span- mx-auto">
-        <label className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key</label>
+        <label className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key - If you have previously entered the key, you do not have to re-enter it; just click go to app</label>
         <div className="mt-2.5">
           <textarea          
           value={content}
