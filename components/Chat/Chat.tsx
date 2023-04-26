@@ -13,11 +13,12 @@ interface Props {
   onSend: (message: Message) => void;
   //onReset: () => void;
   onSave: () => void;
+  loadingSave: boolean;
 }
 
 export const Chat: FC<Props> = ({ messages, loading, onSend, 
  // onReset, 
-  onSave }) => {
+  onSave, loadingSave }) => {
   // return (
   //   <>
   //     <div className="flex flex-row justify-between items-center mb-4 sm:mb-8">
@@ -50,7 +51,7 @@ export const Chat: FC<Props> = ({ messages, loading, onSend,
 
       </div> 
       <div className="mt-10">
-      <SaveChat onSave={onSave}></SaveChat>
+      <SaveChat loadingSave = {loadingSave} onSave={onSave}></SaveChat>
     </div>
     </>
   );
