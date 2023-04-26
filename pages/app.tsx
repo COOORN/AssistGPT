@@ -122,12 +122,6 @@ export default function App() {
 
   const handleSave = async () => {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
-    const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-      SystemMessagePromptTemplate.fromTemplate(
-        `You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Today is ${dateString}. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}`
-      ),
-      HumanMessagePromptTemplate.fromTemplate("{text}"),
-    ]);
 
     let messageHistory:string;
 
@@ -149,12 +143,12 @@ export default function App() {
     }
 
     if (localStorage.getItem("importantItems") === null) {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates if referencing dates`)])
-      localStorage.setItem("importantItems", dateString.concat(importantItems.text));
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates at all times`)])
+      localStorage.setItem("importantItems", importantItems.text);
     }
     else {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates.`)])
-      localStorage.setItem("importantItems",String(dateString.concat(importantItems.text)));
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n Update the tasks or to-do's based on what the user has discussed. Answer very concisely, and use specific dates at all times.`)])
+      localStorage.setItem("importantItems",String(importantItems.text));
     }
     handleReset();
   };
