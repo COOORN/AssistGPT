@@ -179,7 +179,7 @@ let embedder;
       vectors.forEach(async (values:Document[],keys:number[][]) => {
         await vectorStore.addVectors(keys,values)
       });
-      const results = await vectorStore.similaritySearch(message, 1);
+      const results = await vectorStore.similaritySearch(message, 5);
       let resultConcat = "";
       for (let i = 0; i < results.length; i++) {
         resultConcat = resultConcat.concat(`${results[i].pageContent};`)
