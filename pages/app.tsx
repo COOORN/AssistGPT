@@ -16,6 +16,9 @@ import {
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import localForage from "localforage";
+import { Document } from "langchain/dist/document";
+import { VectorStore } from "langchain/dist/vectorstores/base";
 
 let debugString:string;
 //         <div className="gap-5"><p className="text-xs">{debugString}</p></div>
@@ -32,15 +35,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-
-
-  
-
-  useEffect(() =>
-    {
-      key = String(localStorage.getItem("APIKEY"));
-    }
-  )
+ 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -51,8 +46,8 @@ export default function App() {
 
   const handleSend = async (message: Message) => {
     const updatedMessages = [...messages, message];
-
-      const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
+    key = String(await localForage.getItem("APIKEY"));
+    const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
       `You are a helpful AI assistant that helps the user's productivity and task management. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving. Today is ${dateString}. Try your best to ask follow up questions and keep the conversation going at all times. You have long term memory. These are their tasks/to-do's: {importantItems}. This is the history of your conversation so far with this user: {history}`
@@ -73,17 +68,17 @@ export default function App() {
     }
 
 
-    if (localStorage.getItem("history") !== null){
+    if (await localForage.getItem("vectorStoreData") !== null){
       const contextInjection = await handleLoad(message.content);
       messageHistory = messageHistory.concat(String(contextInjection));
     }
-    debugString = String(localStorage.getItem("importantItems")).concat("\n".concat(messageHistory))
+    debugString = String(await localForage.getItem("importantItems")).concat("\n".concat(messageHistory))
 
-    if (localStorage.getItem("importantItems") === null) {
+    if (await localForage.getItem("importantItems") === null) {
       var response = await chain.call({importantItems: "NONE SO FAR", history: messageHistory, text: message.content});
     }
     else {
-      var response = await chain.call({importantItems: String(localStorage.getItem("importantItems")), history: messageHistory, text: message.content});
+      var response = await chain.call({importantItems: String(await localForage.getItem("importantItems")), history: messageHistory, text: message.content});
     }
     let isFirst = true;
     setLoading(true);
@@ -119,49 +114,71 @@ export default function App() {
       }
     ]);
   };
-
+let embedder;
   const handleSave = async () => {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
 
-    let messageHistory:string;
+    let messageHistory:string = "";
 
-    if (localStorage.getItem("history") === null){
+    if (await localForage.getItem("vectorStoreData") == null){
       messageHistory = `${dateString}: `; 
       for (let i = 0; i < messages.length; i++) {
         messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
       }
-      localStorage.setItem("history", messageHistory);
+      const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:100});
+      const output = await splitter.createDocuments([messageHistory]);
+      embedder = new OpenAIEmbeddings({openAIApiKey:key});
+      let vectors:Map<number[][],Document[]>= new Map();
+      let docs:Document[] = [];
+      let docStrings:string[]=[];
+      for (let i = 0; i < output.length; i++){
+      docs.push(output[i]);
+      docStrings.push(output[i].pageContent);
+      }
+      const vectorKey = await embedder.embedDocuments(docStrings);
+      vectors.set(vectorKey, docs)
+      await localForage.setItem("vectorStoreData", vectors);
       
     }
-    else {
-      messageHistory = String(localStorage.getItem("history"));
-      messageHistory = messageHistory.concat(`${dateString}: `); 
+    if (await localForage.getItem("vectorStoreData") != null) {
+      messageHistory =`${dateString}: `; 
       for (let i = 0; i < messages.length; i++) {
         messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
       }
-      localStorage.setItem("history", messageHistory);
+      const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:100});
+      const output = await splitter.createDocuments([messageHistory]);
+      embedder = new OpenAIEmbeddings({openAIApiKey:key});
+      let vectors:any = await localForage.getItem("vectorStoreData")
+      let docs:Document[] = [];
+      let docStrings:string[]=[];
+      for (let i = 0; i < output.length; i++){
+      docs.push(output[i]);
+      docStrings.push(output[i].pageContent);
+      }
+      const vectorKey = await embedder.embedDocuments(docStrings);
+      vectors.set(vectorKey, docs)
+      await localForage.setItem("vectorStoreData", vectors);
+      
     }
 
-    if (localStorage.getItem("importantItems") === null) {
+    if (await localForage.getItem("importantItems") === null) {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n What are the tasks or to-do's the user has discussed about? Answer very concisely, and use specific dates at all times`)])
-      localStorage.setItem("importantItems", importantItems.text);
+      localForage.setItem("importantItems", importantItems.text);
     }
     else {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n These are the tasks you have for the user so far; "${String(localStorage.getItem('importantItems'))}".\n Update the tasks or to-do's based on what the user has discussed. Answer very concisely, and use specific dates at all times.`)])
-      localStorage.setItem("importantItems",String(importantItems.text));
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}" \n These are the tasks you have for the user so far; "${String(await localForage.getItem('importantItems'))}".\n Update the tasks or to-do's based on what the user has discussed. Answer very concisely, and use specific dates at all times.`)])
+      localForage.setItem("importantItems",String(importantItems.text));
     }
     handleReset();
   };
 
   const handleLoad = async (message:string) => {
-    if (localStorage.getItem("history") !== null){
-      const messageHistory:string = String(localStorage.getItem("history"));
-      const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:100});
-      const output = await splitter.createDocuments([messageHistory]);
-      const vectorStore = await MemoryVectorStore.fromDocuments(
-        output,
-        new OpenAIEmbeddings({openAIApiKey: key})
-      );
+    if (await localForage.getItem("vectorStoreData") != null){
+      let vectors:any = await localForage.getItem("vectorStoreData")
+      let vectorStore:MemoryVectorStore = new MemoryVectorStore(new OpenAIEmbeddings({openAIApiKey:key}) );
+      vectors.forEach(async (values:Document[],keys:number[][]) => {
+        await vectorStore.addVectors(keys,values)
+      });
       const results = await vectorStore.similaritySearch(message, 1);
       let resultConcat = "";
       for (let i = 0; i < results.length; i++) {

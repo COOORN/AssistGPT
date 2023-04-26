@@ -6,10 +6,12 @@ import Head from "next/head";
 import Link from "next/link";
 import { FC, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Router from 'next/router'
+import localForage from "localforage";
+
 
 export default function Home () {
     //useEffect(() => {
-        //if (localStorage.getItem("APIKEY") !== null){
+        //if (localForage.getItem("APIKEY") !== null){
 
                 //Router.push('/app')
 
@@ -36,11 +38,11 @@ export default function Home () {
 
 
       const handleSend = () => {
-        if (!content && localStorage.getItem("APIKEY") === null) {
+        if (!content && localForage.getItem("APIKEY") === null) {
           alert("Please enter a key. No key provided previously either.");
           return;
         }
-        localStorage.setItem("APIKEY",String(content));
+        localForage.setItem("APIKEY",String(content));
         }
     return (
         <>
