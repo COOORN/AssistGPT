@@ -31,12 +31,10 @@ const monthNames = ["January", "February", "March", "April", "May", "June",
 ];
 const dateString = monthNames[today.getMonth()] + " " + today.getDate() + " " + today.getFullYear();
 
-export default function App() {
+export default async function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave,setLoadingSave] = useState<boolean>(false);
- 
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
@@ -50,12 +48,11 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      `You are a helpful AI assistant that helps the user. Do not offer to do tasks you cannot accomplish as of yet, since you are still improving.
+      `You are AssistGPT, a helpful AI assistant that helps the user.
        Today is ${dateString}.
-        Try your best to ask follow up questions and keep the conversation going at all times.
          You have long term memory, where these are the lists you always need to remember: "{importantItems}".
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}". Ignore any information that is unecessary.
-         This is the history of your conversation with the user in this session, where you are "assistant" and the user is "user": {messageHistory}`
+         This is the history of your conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
   ]);
@@ -89,6 +86,7 @@ export default function App() {
       var response = await chain.call({importantItems: "NONE SO FAR", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     else {
+      console.log(String(await localForage.getItem("importantItems")))
       var response = await chain.call({importantItems: String(await localForage.getItem("importantItems")), historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     let isFirst = true;
@@ -175,13 +173,13 @@ export default function App() {
 
     if (await localForage.getItem("importantItems") === null) {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       What are the tasks or to-do's or any other lists the user has discussed about? Answer concisely, and use specific dates at all times`)])
+       What are the tasks or to-do's or any other lists the user has discussed about? Answer concisely in Markdown format of a checkbox list with a heading for each list as it's title, and use specific dates at all times`)])
       localForage.setItem("importantItems", importantItems.text);
     }
     else {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        These are the tasks you have for the user so far: "${String(await localForage.getItem('importantItems'))}".
-       Update the tasks or to-do's or other lists based on what the user has discussed. Answer concisely, and use specific dates at all times.`)])
+       Update the tasks or to-do's or other lists based on what the user has discussed. Answer concisely in Markdown format of a checkbox list with a heading for each list as it's title, and use specific dates at all times.`)])
       localForage.setItem("importantItems",String(importantItems.text));
     }
     setLoadingSave(false);
@@ -248,7 +246,6 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
         </div>
-
         <Footer />
       </div>
     </>
