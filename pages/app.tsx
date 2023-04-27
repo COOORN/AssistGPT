@@ -31,7 +31,7 @@ const monthNames = ["January", "February", "March", "April", "May", "June",
 ];
 const dateString = monthNames[today.getMonth()] + " " + today.getDate() + " " + today.getFullYear();
 
-export default async function App() {
+export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave,setLoadingSave] = useState<boolean>(false);
