@@ -42,8 +42,13 @@ export default function Home () {
           alert("Please enter a key. No key provided previously either.");
           return;
         }
-        localForage.setItem("APIKEY",String(content));
+        else if(!content && localForage.getItem("APIKEY") != null){
+        return;
         }
+        else {
+          localForage.setItem("APIKEY", String(content));
+        }
+      }
     return (
         <>
 
@@ -66,7 +71,7 @@ export default function Home () {
         <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
           <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
           <div className="sm:col-span- mx-auto">
-        <label className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key</label>
+        <label className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key - Just click go to app if you have previously entered the key before</label>
         <div className="mt-2.5">
           <textarea          
           value={content}
