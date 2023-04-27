@@ -23,7 +23,6 @@ import { VectorStore } from "langchain/dist/vectorstores/base";
 let debugString:string;
 //         <div className="gap-5"><p className="text-xs">{debugString}</p></div>
 
-let key:string;
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -44,13 +43,13 @@ export default function App() {
 
   const handleSend = async (message: Message) => {
     const updatedMessages = [...messages, message];
-    key = String(await localForage.getItem("APIKEY"));
+    const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
       `You are AssistGPT, a helpful AI assistant that helps the user.
        Today is ${dateString}.
-         You have long term memory, where these are the lists you always need to remember: "{importantItems}".
+         You have long term memory, where these are the to-do's you always need to remember: "{importantItems}".
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}". Ignore any information that is unecessary.
          This is the history of your conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
@@ -81,12 +80,12 @@ export default function App() {
         contextInjection = contextInjection.concat(`${results[i].pageContent};`)
       }    
     }
-    //console.log(`History:${messageHistory} <==> Important: ${String(await localForage.getItem("importantItems"))} <==> Context: ${contextInjection}`)
     if (await localForage.getItem("importantItems") == null) {
+      console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: "NONE SO FAR", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     else {
-      console.log(String(await localForage.getItem("importantItems")))
+      console.log(`History:${messageHistory} <==> Important: ${String(await localForage.getItem("importantItems"))} <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: String(await localForage.getItem("importantItems")), historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     let isFirst = true;
@@ -126,6 +125,7 @@ export default function App() {
   let embedder;
   const handleSave = async () => {
     setLoadingSave(true);
+    const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
 
     let messageHistory:string = "";
@@ -137,6 +137,7 @@ export default function App() {
       }
       const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
       const output = await splitter.createDocuments([messageHistory]);
+      const key = String(await localForage.getItem("APIKEY"));
       embedder = new OpenAIEmbeddings({openAIApiKey:key});
       let vectors:Map<number[][],Document[]>= new Map();
       let docs:Document[] = [];
@@ -157,6 +158,7 @@ export default function App() {
       }
       const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
       const output = await splitter.createDocuments([messageHistory]);
+      const key = String(await localForage.getItem("APIKEY"));
       embedder = new OpenAIEmbeddings({openAIApiKey:key});
       let vectors:any = await localForage.getItem("vectorStoreData")
       let docs:Document[] = [];
@@ -173,13 +175,13 @@ export default function App() {
 
     if (await localForage.getItem("importantItems") === null) {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       What are the tasks or to-do's or any other lists the user has discussed about? Answer concisely in Markdown format of a checkbox list with a heading for each list as it's title, and use specific dates at all times`)])
+       What are the to-do's, if any, the user has discussed about? Answer concisely and use specific dates instead of relative at all times.`)])
       localForage.setItem("importantItems", importantItems.text);
     }
     else {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       These are the tasks you have for the user so far: "${String(await localForage.getItem('importantItems'))}".
-       Update the tasks or to-do's or other lists based on what the user has discussed. Answer concisely in Markdown format of a checkbox list with a heading for each list as it's title, and use specific dates at all times.`)])
+       These are the to-do's you have for the user so far: "${String(await localForage.getItem('importantItems'))}".
+       If there are changes, update the tasks or to-do's based on what the user has discussed. Answer concisely and use specific dates instead of relative at all times.`)])
       localForage.setItem("importantItems",String(importantItems.text));
     }
     setLoadingSave(false);

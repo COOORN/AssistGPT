@@ -28,7 +28,7 @@ export const Chat: FC<Props> = ({ messages, loading, onSend,
         <>
 
 
-      <div className="flex flex-col rounded-lg px-2 sm:p-4 sm:border border-neutral-300">
+      <div className="flex flex-col rounded-lg px-2 sm:p-4 sm:border border-neutral-300 gap-3">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -47,12 +47,12 @@ export const Chat: FC<Props> = ({ messages, loading, onSend,
         <div className="mt-4 sm:mt-8 bottom-[56px] left-0 w-full">
           <ChatInput onSend={onSend} />
         </div>
-
-
-      </div> 
-      <div className="mt-10">
+        <div className="flex flex-row">
       <SaveChat loadingSave = {loadingSave} onSave={onSave}></SaveChat>
     </div>
+
+      </div> 
+
     </>
   );
 };
