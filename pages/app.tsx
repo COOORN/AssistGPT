@@ -23,6 +23,7 @@ import { VectorStore } from "langchain/dist/vectorstores/base";
 let debugString:string;
 //         <div className="gap-5"><p className="text-xs">{debugString}</p></div>
 
+let importantItemsString = "None so far.";
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -177,12 +178,15 @@ export default function App() {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        What are the to-do's, if any, the user has discussed about? Answer concisely and use specific dates instead of relative at all times.`)])
       localForage.setItem("importantItems", importantItems.text);
+      importantItemsString = importantItems.text;
     }
     else {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        These are the to-do's you have for the user so far: "${String(await localForage.getItem('importantItems'))}".
        If there are changes, update the tasks or to-do's based on what the user has discussed. Answer concisely and use specific dates instead of relative at all times.`)])
       localForage.setItem("importantItems",String(importantItems.text));
+      importantItemsString = importantItems.text;
+
     }
     setLoadingSave(false);
     handleReset();
@@ -231,12 +235,11 @@ export default function App() {
           href="/favicon.ico"
         />
       </Head>
+      <Navbar />
 
-      <div className="flex flex-col h-screen">
-        <Navbar />
+      <div className="md:grid md:grid-cols-5 sm:flex sm:flex-col">
 
-        <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
-          <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
+        <div className="md:col-span-3 overflow-auto sm:px-10 py-4 pb-4 sm:pb-10">
             <Chat
               messages={messages}
               loading={loading}
@@ -246,10 +249,16 @@ export default function App() {
               loadingSave = {loadingSave}
             />
             <div ref={messagesEndRef} />
-          </div>
         </div>
-        <Footer />
+        <div className="col-span-1">
+          <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
+            <div className="flex-col">
+              <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
+            <p className="font-sans">{importantItemsString}</p></div>
+            </div>
+        </div>
       </div>
+
     </>
   );
   }
