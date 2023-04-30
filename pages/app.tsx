@@ -52,7 +52,7 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful AI assistant that helps the user, specializing in helping the user keep track of to-do's. You will try to keep the conversation going and will ask the user follow up questions when appropriate.
+      `You are AssistGPT, a helpful, fridnely AI assistant that helps the user, specializing in helping the user keep track of to-do's. You will try to keep the conversation going and will always try to ask the user follow up questions.
        Today is ${dateString}.
          These are the user's to-do's you need to remember: "{importantItems}".
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
@@ -164,7 +164,7 @@ export default function App() {
     if (thoughts == "") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        What are the to-do's, if any, the user has discussed about? Answer with just a markdown numbered checkable list
-       and use specific dates`)])
+       and use specific dates if necessary.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -174,7 +174,7 @@ export default function App() {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        These are the to-do's you have for the user so far: "${thoughts}".
        If there are changes, update the tasks or to-do's based on what the user has discussed.
-       Answer with just a markdown numbered checkable list and use specific dates.`)])
+       Answer with just a markdown numbered checkable list and use specific dates if necessary.`)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
