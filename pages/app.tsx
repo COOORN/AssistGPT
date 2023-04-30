@@ -52,11 +52,11 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful AI assistant that helps the user. You will try to keep the conversation going and will ask the user follow up questions when appropriate.
+      `You are AssistGPT, a helpful AI assistant that helps the user, specializing in helping the user keep track of to-do's. You will try to keep the conversation going and will ask the user follow up questions when appropriate.
        Today is ${dateString}.
-         You have long term memory, where these are the to-do's you always need to remember: "{importantItems}".
-         These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}". Ignore any information that is unecessary.
-         This is the history of your conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
+         These are the user's to-do's you need to remember: "{importantItems}".
+         These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
+         This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
   ]);
@@ -121,7 +121,7 @@ export default function App() {
   const handleSave = async () => {
     setLoadingSave(true);
     const key = String(await localForage.getItem("APIKEY"));
-    const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
+    const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0 })
 
     let messageHistory:string = "";
 
@@ -129,7 +129,7 @@ export default function App() {
     for (let i = 0; i < messages.length; i++) {
       messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
     }
-    const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
+    const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:50});
     const output = await splitter.createDocuments([messageHistory]);
     let embedder = new OpenAIEmbeddings({openAIApiKey:key});
 
