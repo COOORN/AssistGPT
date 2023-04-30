@@ -18,12 +18,7 @@ import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
-import { VectorStore } from "langchain/dist/vectorstores/base";
-
-let debugString:string;
-//         <div className="gap-5"><p className="text-xs">{debugString}</p></div>
-
-let importantItemsString = "None so far.";
+import {UndoThoughts} from "@/components/Chat/UndoThoughts"
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -35,6 +30,10 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave,setLoadingSave] = useState<boolean>(false);
+  const [thoughts, setThoughts] = useState<string>("");
+
+  const [lastThought, setLastThought] = useState<string>("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
@@ -44,6 +43,12 @@ export default function App() {
 
   const handleSend = async (message: Message) => {
     const updatedMessages = [...messages, message];
+
+    if (await localForage.getItem("importantItems") != null){
+      setThoughts(String(await localForage.getItem("importantItems")));
+      setLastThought(String(await localForage.getItem("importantItems")));
+    }
+
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
@@ -81,13 +86,13 @@ export default function App() {
         contextInjection = contextInjection.concat(`${results[i].pageContent};`)
       }    
     }
-    if (await localForage.getItem("importantItems") == null) {
+    if (thoughts == "") {
       console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: "NONE SO FAR", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
-    else {
-      console.log(`History:${messageHistory} <==> Important: ${String(await localForage.getItem("importantItems"))} <==> Context: ${contextInjection}`)
-      var response = await chain.call({importantItems: String(await localForage.getItem("importantItems")), historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
+    else if (thoughts != "") {
+      console.log(`History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`)
+      var response = await chain.call({importantItems: thoughts, historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     let isFirst = true;
     setLoading(true);
@@ -123,6 +128,7 @@ export default function App() {
       }
     ]);
   };
+
   let embedder;
   const handleSave = async () => {
     setLoadingSave(true);
@@ -174,22 +180,27 @@ export default function App() {
       
     }
 
-    if (await localForage.getItem("importantItems") === null) {
+    if (thoughts == "") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       What are the to-do's, if any, the user has discussed about? Answer concisely and use specific dates instead of relative at all times.`)])
+       What are the to-do's, if any, the user has discussed about? Answer with just a list and use specific dates at all times.`)])
       localForage.setItem("importantItems", importantItems.text);
-      importantItemsString = importantItems.text;
+      setThoughts(importantItems.text);
+      setLastThought(importantItems.text);
     }
     else {
+      setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       These are the to-do's you have for the user so far: "${String(await localForage.getItem('importantItems'))}".
-       If there are changes, update the tasks or to-do's based on what the user has discussed. Answer concisely and use specific dates instead of relative at all times.`)])
+       These are the to-do's you have for the user so far: "${thoughts}".
+       If there are changes, update the tasks or to-do's based on what the user has discussed. Answer with just a list and use specific dates at all times.`)])
       localForage.setItem("importantItems",String(importantItems.text));
-      importantItemsString = importantItems.text;
-
+      setThoughts(importantItems.text);
     }
     setLoadingSave(false);
     handleReset();
+  };
+
+  const handleUndo = () => {
+    setThoughts(lastThought);
   };
 
   // const handleLoad:string = async (message:string) => {
@@ -254,7 +265,8 @@ export default function App() {
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
-            <p className="font-sans">{importantItemsString}</p></div>
+            <p className="font-sans">{thoughts}</p></div>
+            <UndoThoughts onUndo={handleUndo} />
             </div>
         </div>
       </div>
