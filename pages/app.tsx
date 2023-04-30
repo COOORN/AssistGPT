@@ -166,8 +166,8 @@ export default function App() {
 
     if (thoughts == "") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       What are the to-do's, if any, the user has discussed about? Answer with just a markdown numbered list
-       and use specific dates if necessary.`)])
+       If the user's tasks or todo's were discussed, answer with just a markdown numbered list of their todos
+       and use specific dates when possible. Otherwise write "None".`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -175,9 +175,9 @@ export default function App() {
     else {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       These are the to-do's you have for the user so far: "${thoughts}".
-       For each to-do, if there is a change, update the to-do based on what the user has said. Only if they say they have completed a to-do, will you check it off.
-       Answer with just a markdown numbered list and use specific dates if necessary.`)])
+      These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
+      Update the list in the same format as before if there are updates. Otherwise just return the same list.
+      `)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
