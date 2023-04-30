@@ -250,7 +250,7 @@ export default function App() {
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
-            <p className="font-sans py-2"><ReactMarkdown children={thoughts} remarkPlugins={[remarkGFM]}></ReactMarkdown></p></div>
+            <p className="font-sans py-2"><ReactMarkdown remarkPlugins={[remarkGFM]}>{thoughts}</ReactMarkdown></p></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
         </div>
