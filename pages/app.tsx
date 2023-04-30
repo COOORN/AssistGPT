@@ -4,7 +4,6 @@ import { Navbar } from "@/components/Layout/Navbar";
 import { Message } from "@/types";
 import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
-import { OpenAI } from "langchain/llms/openai";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
 import { LLMChain } from "langchain/chains";
@@ -19,6 +18,8 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import {UndoThoughts} from "@/components/Chat/UndoThoughts"
+import { ReactMarkdown } from "react-markdown/lib/react-markdown";
+import remarkGFM from "remark-gfm";
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -30,6 +31,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave,setLoadingSave] = useState<boolean>(false);
+
   const [thoughts, setThoughts] = useState<string>("");
 
   const [lastThought, setLastThought] = useState<string>("");
@@ -42,12 +44,9 @@ export default function App() {
   };
 
   const handleSend = async (message: Message) => {
-    const updatedMessages = [...messages, message];
+    setLoading(true);
 
-    if (await localForage.getItem("importantItems") != null){
-      setThoughts(String(await localForage.getItem("importantItems")));
-      setLastThought(String(await localForage.getItem("importantItems")));
-    }
+    const updatedMessages = [...messages, message];
 
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
@@ -88,14 +87,13 @@ export default function App() {
     }
     if (thoughts == "") {
       console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
-      var response = await chain.call({importantItems: "NONE SO FAR", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
+      var response = await chain.call({importantItems: "NONE", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     else if (thoughts != "") {
       console.log(`History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: thoughts, historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
     let isFirst = true;
-    setLoading(true);
 
       if (isFirst) {
         isFirst = false;
@@ -120,16 +118,6 @@ export default function App() {
       }
     }
 
-  const handleReset = () => {
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hi there!`
-      }
-    ]);
-  };
-
-  let embedder;
   const handleSave = async () => {
     setLoadingSave(true);
     const key = String(await localForage.getItem("APIKEY"));
@@ -137,18 +125,20 @@ export default function App() {
 
     let messageHistory:string = "";
 
+    messageHistory =`${dateString}: `; 
+    for (let i = 0; i < messages.length; i++) {
+      messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
+    }
+    const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
+    const output = await splitter.createDocuments([messageHistory]);
+    let embedder = new OpenAIEmbeddings({openAIApiKey:key});
+
+    let docs:Document[] = [];
+    let docStrings:string[]=[];
+
     if (await localForage.getItem("vectorStoreData") == null){
-      messageHistory = `${dateString}: `; 
-      for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};`)
-      }
-      const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
-      const output = await splitter.createDocuments([messageHistory]);
-      const key = String(await localForage.getItem("APIKEY"));
-      embedder = new OpenAIEmbeddings({openAIApiKey:key});
       let vectors:Map<number[][],Document[]>= new Map();
-      let docs:Document[] = [];
-      let docStrings:string[]=[];
+
       for (let i = 0; i < output.length; i++){
       docs.push(output[i]);
       docStrings.push(output[i].pageContent);
@@ -159,17 +149,8 @@ export default function App() {
       
     }
     else {
-      messageHistory =`${dateString}: `; 
-      for (let i = 0; i < messages.length; i++) {
-        messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
-      }
-      const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:20});
-      const output = await splitter.createDocuments([messageHistory]);
-      const key = String(await localForage.getItem("APIKEY"));
-      embedder = new OpenAIEmbeddings({openAIApiKey:key});
+
       let vectors:any = await localForage.getItem("vectorStoreData")
-      let docs:Document[] = [];
-      let docStrings:string[]=[];
       for (let i = 0; i < output.length; i++){
       docs.push(output[i]);
       docStrings.push(output[i].pageContent);
@@ -182,7 +163,8 @@ export default function App() {
 
     if (thoughts == "") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       What are the to-do's, if any, the user has discussed about? Answer with just a list and use specific dates at all times.`)])
+       What are the to-do's, if any, the user has discussed about? Answer with just a markdown numbered checkable list
+       and use specific dates`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -191,7 +173,8 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
        These are the to-do's you have for the user so far: "${thoughts}".
-       If there are changes, update the tasks or to-do's based on what the user has discussed. Answer with just a list and use specific dates at all times.`)])
+       If there are changes, update the tasks or to-do's based on what the user has discussed.
+       Answer with just a markdown numbered checkable list and use specific dates.`)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
@@ -199,26 +182,21 @@ export default function App() {
     handleReset();
   };
 
-  const handleUndo = () => {
-    setThoughts(lastThought);
+  const handleReset = () => {
+    setMessages([
+      {
+        role: "assistant",
+        content: `Hi there!`
+      }
+    ]);
   };
 
-  // const handleLoad:string = async (message:string) => {
-  //   if (await localForage.getItem("vectorStoreData") != null){
-  //     let vectors:any = await localForage.getItem("vectorStoreData")
-  //     let vectorStore:MemoryVectorStore = new MemoryVectorStore(new OpenAIEmbeddings({openAIApiKey:key}) );
-  //     vectors.forEach(async (values:Document[],keys:number[][]) => {
-  //       await vectorStore.addVectors(keys,values)
-  //     });
-  //     const results = await vectorStore.similaritySearch(message, 5);
-  //     let resultConcat = "";
-  //     for (let i = 0; i < results.length; i++) {
-  //       resultConcat = resultConcat.concat(`${results[i].pageContent};`)
-  //     }
-  //     console.log(`Result concat: ${resultConcat}`)
-  //     return resultConcat
-  //   }
-  // };
+
+  const handleUndo = () => {
+    setThoughts(lastThought);
+    localForage.setItem("importantItems",String(lastThought));
+
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -228,9 +206,16 @@ export default function App() {
     setMessages([
       {
         role: "assistant",
-        content: `Hi there!`
+        content: `Hi there! I'm AssistGPT. How can I help you?`
       }
     ]);
+    const setInitialThoughts =async () => {
+      if (await localForage.getItem("importantItems") != null){
+        setThoughts(String(await localForage.getItem("importantItems")));
+        setLastThought(String(await localForage.getItem("importantItems")));
+      }
+    }
+    setInitialThoughts();
   }, []);
 
   return (
@@ -250,7 +235,7 @@ export default function App() {
 
       <div className="md:grid md:grid-cols-5 sm:flex sm:flex-col">
 
-        <div className="md:col-span-3 overflow-auto sm:px-10 py-4 pb-4 sm:pb-10">
+        <div className="md:col-span-4 overflow-auto px-4 py-4">
             <Chat
               messages={messages}
               loading={loading}
@@ -265,7 +250,7 @@ export default function App() {
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
-            <p className="font-sans">{thoughts}</p></div>
+            <p className="font-sans py-2"><ReactMarkdown children={thoughts} remarkPlugins={[remarkGFM]}></ReactMarkdown></p></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
         </div>

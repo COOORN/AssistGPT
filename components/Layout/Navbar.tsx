@@ -8,6 +8,7 @@ export const Navbar: FC = () => {
           className="ml-2 hover:opacity-50">
           Assist GPT
         </a>
+        
       </div>
     </div>
   );
