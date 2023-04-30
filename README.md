@@ -7,6 +7,6 @@ Full privacy: all completely local using localForage(an indexedDB wrapper).
  - [x] more sustainable and cost effective memory(currently tokenizing all message history each time)
  - import and export data
  - notes
- - viewing lists
+ - [x] viewing to-dos
  - better API key auth
 
