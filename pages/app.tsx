@@ -79,11 +79,14 @@ export default function App() {
       vectors.forEach(async (values:Document[],keys:number[][]) => {
         await vectorStore.addVectors(keys,values)
       });
-      const results = await vectorStore.similaritySearch(message.content, 5);
+      // const results = await vectorStore.similaritySearch(message.content, 5);
       contextInjection = "";
-      for (let i = 0; i < results.length; i++) {
-        contextInjection = contextInjection.concat(`${results[i].pageContent};`)
-      }    
+      const results = await vectorStore.similaritySearchWithScore(message.content);
+      for (let i =0; i < results.length; i++){
+        if (results[i][1] > 0.5){
+          contextInjection = contextInjection.concat(`${results[i][0].pageContent};`)
+        }
+      }
     }
     if (thoughts == "") {
       console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
@@ -129,7 +132,7 @@ export default function App() {
     for (let i = 0; i < messages.length; i++) {
       messageHistory = messageHistory.concat(`${messages[i].role}: ${messages[i].content};\n `)
     }
-    const splitter = new RecursiveCharacterTextSplitter({chunkSize:500,chunkOverlap:50});
+    const splitter = new RecursiveCharacterTextSplitter({chunkSize:100,chunkOverlap:5});
     const output = await splitter.createDocuments([messageHistory]);
     let embedder = new OpenAIEmbeddings({openAIApiKey:key});
 
