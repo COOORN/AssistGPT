@@ -27,14 +27,17 @@ const monthNames = ["January", "February", "March", "April", "May", "June",
 ];
 const dateString = monthNames[today.getMonth()] + " " + today.getDate() + " " + today.getFullYear();
 
+let noteKeys=[""];
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave,setLoadingSave] = useState<boolean>(false);
 
-  const [thoughts, setThoughts] = useState<string>("");
-
+  const [thoughts, setThoughts] = useState<string>("None!");
   const [lastThought, setLastThought] = useState<string>("");
+
+  const [notes, setNotes] = useState<Map<string,string>>(new Map([["Notes","Notes made by AssistGPT will appear under here!"]]));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +55,7 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful, fridnely AI assistant that helps the user, specializing in helping the user keep track of to-do's. You will try to keep the conversation going and will always try to ask the user follow up questions.
+      `You are AssistGPT, a helpful, friendly AI assistant that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
        Today is ${dateString}.
          These are the user's to-do's you need to remember: "{importantItems}".
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
@@ -88,11 +91,11 @@ export default function App() {
         }
       }
     }
-    if (thoughts == "") {
+    if (thoughts == "None!") {
       console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: "NONE", historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
-    else if (thoughts != "") {
+    else if (thoughts != "None!") {
       console.log(`History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`)
       var response = await chain.call({importantItems: thoughts, historicalData:contextInjection, messageHistory: messageHistory, text: message.content});
     }
@@ -164,10 +167,11 @@ export default function App() {
       
     }
 
-    if (thoughts == "") {
+    if (thoughts == "None!") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       If the user's tasks or todo's were discussed, answer with just a markdown numbered list of their todos
-       and use specific dates when possible. Otherwise write "None".`)])
+       If and ONLY IF the user asked to set a task or to-do, answer with just a markdown numbered list of their todos
+       and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
+       Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -176,11 +180,24 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
       These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list in the same format as before if there are updates. Otherwise just return the same list.
+      Update the list if and ONLY IF there are updates to tasks or to-do's. Ignore any notes they asked to set. Just return the same list if the user did not ask for any changes.
+      Do NOT write anything extra.
       `)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
+
+    const newNotes = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
+    Make any notes for the user that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "====Favorite color~Green====Favorite movie~Inception====". If the note includes the character "~" replace it with "tilda".
+    Write "None" if the user did not ask to make any notes.
+    Do NOT write anything extra. Do NOT write notes that the user did not ask to be written. Do NOT write to-do's or tasks as notes.`)]);
+    console.log(newNotes.text)
+    if (newNotes.text != "None") {
+    for (let i=0; i<newNotes.text.split("====").length; i++){
+      setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
+      localForage.setItem("notes", notes);
+    }
+  }
     setLoadingSave(false);
     handleReset();
   };
@@ -212,13 +229,17 @@ export default function App() {
         content: `Hi there! I'm AssistGPT. How can I help you?`
       }
     ]);
-    const setInitialThoughts =async () => {
+    const setInitials =async () => {
       if (await localForage.getItem("importantItems") != null){
         setThoughts(String(await localForage.getItem("importantItems")));
         setLastThought(String(await localForage.getItem("importantItems")));
       }
+      if (await localForage.getItem("notes") != null){
+        let localNotes:any = await localForage.getItem("notes");
+        setNotes(localNotes);
+      }
     }
-    setInitialThoughts();
+    setInitials();
   }, []);
 
   return (
@@ -253,9 +274,16 @@ export default function App() {
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
-            <p className="font-sans py-2"><ReactMarkdown remarkPlugins={[remarkGFM]}>{thoughts}</ReactMarkdown></p></div>
+            <div className="font-sans py-2"><ReactMarkdown remarkPlugins={[remarkGFM]}>{thoughts}</ReactMarkdown></div></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
+            {Array.from(notes.keys()).map((key) => (
+            <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
+            <div className="flex-col">
+                              <><div className="font-sans text-xl">{key}</div><div className="font-sans py-2">{notes.get(key)}</div></>
+              </div>
+              </div>
+              ))}
         </div>
       </div>
 
