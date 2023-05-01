@@ -280,7 +280,7 @@ export default function App() {
             {Array.from(notes.keys()).map((key) => (
             <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
-                              <><div className="font-sans text-xl">{key}</div><div className="font-sans py-2">{notes.get(key)}</div></>
+                              <><div key={key} className="font-sans text-xl">{key}</div><div key={key} className="font-sans py-2">{notes.get(key)}</div></>
               </div>
               </div>
               ))}
