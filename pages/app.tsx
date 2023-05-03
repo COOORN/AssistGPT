@@ -57,7 +57,9 @@ export default function App() {
     SystemMessagePromptTemplate.fromTemplate(
       `You are AssistGPT, a helpful, friendly AI friend that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
        Today is ${dateString}.
-         These are the user's to-do's you need to remember: "{importantItems}".
+         These are the user's to-do's you need to remember from past conversations: "{importantItems}".
+         One of your tasks is to update these to-do's.
+         If there are tasks marked as done, ask the user if they want to remove them from the list.
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
@@ -172,8 +174,8 @@ export default function App() {
     }
 
     if (thoughts == "None!") {
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       If the user asked to set a task or to-do, answer with just a markdown checkbox list of their todos
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
+       If the user asked to set a task or to-do, answer with just a markdown bulleted list of their todos
        and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
        Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
@@ -182,18 +184,18 @@ export default function App() {
     }
     else {
       setLastThought(thoughts);
-      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
+      const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
       These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
       Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Ignore any notes they asked to set. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
-      Format the list in a markdown checkbox list.
+      Format the list in a markdown bulleted list.
       Do NOT write anything extra.
       `)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
 
-    const newNotes = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
+    const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
     Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "====Favorite color~Green====Favorite movie~Inception====". If the note includes the character "~" replace it with "tilda".
     Write "None" if the user did not ask to make any notes.
     Do NOT write anything extra. Do NOT write to-do's or tasks as notes.`)]);
