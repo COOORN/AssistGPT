@@ -55,7 +55,7 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful, friendly AI assistant that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
+      `You are AssistGPT, a helpful, friendly AI friend that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
        Today is ${dateString}.
          These are the user's to-do's you need to remember: "{importantItems}".
          These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
@@ -89,7 +89,11 @@ export default function App() {
         if (results[i][1] > 0.5){
           contextInjection = contextInjection.concat(`${results[i][0].pageContent};`)
         }
+        if (contextInjection.length > 4000){
+          break;
+        }
       }
+      vectorStore.asRetriever();
     }
     if (thoughts == "None!") {
       console.log(`History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`)
