@@ -169,7 +169,7 @@ export default function App() {
 
     if (thoughts == "None!") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-       If and ONLY IF the user asked to set a task or to-do, answer with just a markdown numbered list of their todos
+       If the user asked to set a task or to-do, answer with just a markdown checkbox list of their todos
        and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
        Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
@@ -180,7 +180,9 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
       These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if and ONLY IF there are updates to tasks or to-do's. Ignore any notes they asked to set. Just return the same list if the user did not ask for any changes.
+      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Ignore any notes they asked to set. Return the same list if the user did not ask for any changes.
+      Use specific dates when possible.
+      Format the list in a markdown checkbox list.
       Do NOT write anything extra.
       `)])
       localForage.setItem("importantItems",String(importantItems.text));
@@ -188,9 +190,9 @@ export default function App() {
     }
 
     const newNotes = await chat.call([new HumanChatMessage(`This is the message history between you and the user: "${messageHistory}".
-    Make any notes for the user that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "====Favorite color~Green====Favorite movie~Inception====". If the note includes the character "~" replace it with "tilda".
+    Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "====Favorite color~Green====Favorite movie~Inception====". If the note includes the character "~" replace it with "tilda".
     Write "None" if the user did not ask to make any notes.
-    Do NOT write anything extra. Do NOT write notes that the user did not ask to be written. Do NOT write to-do's or tasks as notes.`)]);
+    Do NOT write anything extra. Do NOT write to-do's or tasks as notes.`)]);
     console.log(newNotes.text)
     if (newNotes.text != "None") {
     for (let i=0; i<newNotes.text.split("====").length; i++){

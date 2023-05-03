@@ -7,6 +7,9 @@ Full privacy: all completely local using localForage(an indexedDB wrapper).
  - [x] more sustainable and cost effective memory(currently tokenizing all message history each time)
  - import and export data
  - [x] notes - STILL EXPERIMENTAL
+    - 1. need to add editing and deleting notes
+    - 2. need to let ai access notes
  - [x] viewing to-dos
+    - 1. need to access hide button
  - better API key auth
 
