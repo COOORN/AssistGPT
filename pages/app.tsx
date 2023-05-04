@@ -54,7 +54,7 @@ export default function App() {
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(
+    HumanMessagePromptTemplate.fromTemplate(
       `You are AssistGPT, a helpful, friendly AI friend that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
        Today is ${dateString}.
          These are the user's to-do's you need to remember from past conversations: "{importantItems}".
@@ -177,6 +177,7 @@ export default function App() {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
        If the user asked to set a task or to-do, answer with just a markdown bulleted list of their todos
        and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
+       Do NOT write notes.
        Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
@@ -186,7 +187,7 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
       These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Ignore any notes they asked to set. Return the same list if the user did not ask for any changes.
+      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Do NOT write notes. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
       Format the list in a markdown bulleted list.
       Do NOT write anything extra.
@@ -196,12 +197,13 @@ export default function App() {
     }
 
     const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-    Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "====Favorite color~Green====Favorite movie~Inception====". If the note includes the character "~" replace it with "tilda".
+    Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "Favorite color~Green====Favorite movie~Inception". If the note includes the character "~" replace it with "tilda".
     Write "None" if the user did not ask to make any notes.
-    Do NOT write anything extra. Do NOT write to-do's or tasks as notes.`)]);
+    Do NOT write anything extra. Do NOT write to-do's or tasks.`)]);
     console.log(newNotes.text)
     if (newNotes.text != "None") {
     for (let i=0; i<newNotes.text.split("====").length; i++){
+      console.log(`${newNotes.text.split("====")[i].split("~")[0]},${newNotes.text.split("====")[i].split("~")[1]}`)
       setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
       localForage.setItem("notes", notes);
     }
