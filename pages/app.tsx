@@ -18,8 +18,7 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import {UndoThoughts} from "@/components/Chat/UndoThoughts"
-import { ReactMarkdown } from "react-markdown/lib/react-markdown";
-import remarkGFM from "remark-gfm";
+import {Thoughts} from "@/components/Memory/Thoughts"
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -37,7 +36,7 @@ export default function App() {
   const [thoughts, setThoughts] = useState<string>("None!");
   const [lastThought, setLastThought] = useState<string>("");
 
-  const [notes, setNotes] = useState<Map<string,string>>(new Map([["Notes","Notes made by AssistGPT will appear under here!"]]));
+  //const [notes, setNotes] = useState<Map<string,string>>(new Map([["Notes","Notes made by AssistGPT will appear under here!"]]));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,12 +49,14 @@ export default function App() {
     setLoading(true);
 
     const updatedMessages = [...messages, message];
-
+    if (await localForage.getItem("APIKEY") == null){
+      alert("API key not provided")
+    }
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     HumanMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful, friendly AI friend that helps the user, specializing in helping the user keep track of to-do's and making notes for them. You will try to keep the conversation going and will always try to ask the user follow up questions.
+      `You are AssistGPT, a helpful, friendly AI friend that helps the user.
        Today is ${dateString}.
          These are the user's to-do's you need to remember from past conversations: "{importantItems}".
          One of your tasks is to update these to-do's.
@@ -91,7 +92,7 @@ export default function App() {
         if (results[i][1] > 0.5){
           contextInjection = contextInjection.concat(`${results[i][0].pageContent};`)
         }
-        if (contextInjection.length > 4000){
+        if (contextInjection.length > 1000){
           break;
         }
       }
@@ -132,6 +133,9 @@ export default function App() {
 
   const handleSave = async () => {
     setLoadingSave(true);
+
+    localForage.setItem("importantItems", thoughts);
+
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0 })
 
@@ -177,7 +181,6 @@ export default function App() {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
        If the user asked to set a task or to-do, answer with just a markdown bulleted list of their todos
        and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
-       Do NOT write notes.
        Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
@@ -187,7 +190,7 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
       These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Do NOT write notes. Return the same list if the user did not ask for any changes.
+      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
       Format the list in a markdown bulleted list.
       Do NOT write anything extra.
@@ -196,18 +199,18 @@ export default function App() {
       setThoughts(importantItems.text);
     }
 
-    const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-    Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "Favorite color~Green====Favorite movie~Inception". If the note includes the character "~" replace it with "tilda".
-    Write "None" if the user did not ask to make any notes.
-    Do NOT write anything extra. Do NOT write to-do's or tasks.`)]);
-    console.log(newNotes.text)
-    if (newNotes.text != "None") {
-    for (let i=0; i<newNotes.text.split("====").length; i++){
-      console.log(`${newNotes.text.split("====")[i].split("~")[0]},${newNotes.text.split("====")[i].split("~")[1]}`)
-      setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
-      localForage.setItem("notes", notes);
-    }
-  }
+  //   const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
+  //   Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "Favorite color~Green====Favorite movie~Inception". If the note includes the character "~" replace it with "tilda".
+  //   Write "None" if the user did not ask to make any notes.
+  //   Do NOT write anything extra. Do NOT write to-do's or tasks.`)]);
+  //   console.log(newNotes.text)
+  //   if (newNotes.text != "None") {
+  //   for (let i=0; i<newNotes.text.split("====").length; i++){
+  //     console.log(`${newNotes.text.split("====")[i].split("~")[0]},${newNotes.text.split("====")[i].split("~")[1]}`)
+  //     setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
+  //     localForage.setItem("notes", notes);
+  //   }
+  // }
     setLoadingSave(false);
     handleReset();
   };
@@ -228,6 +231,16 @@ export default function App() {
 
   };
 
+  const handleThoughtsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length > 1000) {
+      alert("Message limit is 1000 characters");
+      return;
+    }
+
+    setThoughts(value);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -244,10 +257,10 @@ export default function App() {
         setThoughts(String(await localForage.getItem("importantItems")));
         setLastThought(String(await localForage.getItem("importantItems")));
       }
-      if (await localForage.getItem("notes") != null){
-        let localNotes:any = await localForage.getItem("notes");
-        setNotes(localNotes);
-      }
+      // if (await localForage.getItem("notes") != null){
+      //   let localNotes:any = await localForage.getItem("notes");
+      //   setNotes(localNotes);
+      // }
     }
     setInitials();
   }, []);
@@ -284,16 +297,21 @@ export default function App() {
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
-            <div className="font-sans py-2"><ReactMarkdown remarkPlugins={[remarkGFM]}>{thoughts}</ReactMarkdown></div></div>
+            <div className="font-sans py-2">
+            <textarea          
+          value={thoughts}
+        onChange={handleThoughtsChange}
+ name="Thoughts" id="Thoughts" className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+              </div></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
-            {Array.from(notes.keys()).map((key) => (
+            {/* {Array.from(notes.keys()).map((key) => (
             <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
                               <><div className="font-sans text-xl">{key}</div><div className="font-sans py-2">{notes.get(key)}</div></>
               </div>
               </div>
-              ))}
+              ))} */}
         </div>
       </div>
 
