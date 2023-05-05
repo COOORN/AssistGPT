@@ -83,11 +83,11 @@ export default function App() {
       });
       // const results = await vectorStore.similaritySearch(message.content, 5);
       contextInjection = "";
-      const results = await vectorStore.similaritySearchWithScore(message.content);
+      const results = await vectorStore.asRetriever().getRelevantDocuments(message.content);
       for (let i =0; i < results.length; i++){
-        if (results[i][1] > 0.5){
-          contextInjection = contextInjection.concat(`${results[i][0].pageContent};`)
-        }
+        // if (results[i][1] > 0.5){
+          contextInjection = contextInjection.concat(`${results[i].pageContent};`)
+        // }
         if (contextInjection.length > 1000){
           break;
         }
