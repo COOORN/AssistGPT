@@ -58,10 +58,8 @@ export default function App() {
     HumanMessagePromptTemplate.fromTemplate(
       `You are AssistGPT, a helpful, friendly AI friend that helps the user.
        Today is ${dateString}.
-         These are the user's to-do's you need to remember from past conversations: "{importantItems}".
-         One of your tasks is to update these to-do's.
-         If there are tasks marked as done, ask the user if they want to remove them from the list.
-         These are relevant past conversations with the user, where you are "assistant" and the user is "user": "{historicalData}".
+         These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
+         These are relevant past conversations with the user you can use to assist answering questions, where you are "assistant" and the user is "user": "{historicalData}".
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
     HumanMessagePromptTemplate.fromTemplate("{text}"),
@@ -179,8 +177,8 @@ export default function App() {
 
     if (thoughts == "None!") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-       If the user asked to set a task or to-do, answer with just a markdown bulleted list of their todos
-       and use specific dates when possible. Ignore any notes they asked to set. Otherwise write "None".
+       If the user asked to set a task or to-do or remember something important, answer in markdown
+       and use specific dates when possible. Otherwise write "None".
        Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
@@ -189,10 +187,10 @@ export default function App() {
     else {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      These are the current to-do's of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if there are updates to tasks or to-do's or new tasks or todo's. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
+      These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
+      Update the list if there are updates to or new tasks or todo's or important things to remember. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
-      Format the list in a markdown bulleted list.
+      Format the list in markdown.
       Do NOT write anything extra.
       `)])
       localForage.setItem("importantItems",String(importantItems.text));
@@ -296,7 +294,7 @@ export default function App() {
         <div className="col-span-1">
           <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
-              <p className="font-sans text-xl">AssistGPT's Thoughts:</p>
+              <p className="font-sans text-xl">AssistGPT's Persistent Memory:</p>
             <div className="font-sans py-2">
             <textarea          
           value={thoughts}
