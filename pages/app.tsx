@@ -298,7 +298,7 @@ export default function App() {
             <textarea          
           value={thoughts}
         onChange={handleThoughtsChange}
- name="Thoughts" id="Thoughts"  className="block w-full rounded-md border-2 px-3.5 py-2 text-gray-900" />
+ name="Thoughts" id="Thoughts"  className="block w-full h-full rounded-md border px-3.5 py-2 text-gray-900" />
               </div></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
