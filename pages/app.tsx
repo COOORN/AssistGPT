@@ -35,7 +35,6 @@ export default function App() {
   const [thoughts, setThoughts] = useState<string>("None!");
   const [lastThought, setLastThought] = useState<string>("");
 
-  //const [notes, setNotes] = useState<Map<string,string>>(new Map([["Notes","Notes made by AssistGPT will appear under here!"]]));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -196,18 +195,6 @@ export default function App() {
       setThoughts(importantItems.text);
     }
 
-  //   const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-  //   Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "Favorite color~Green====Favorite movie~Inception". If the note includes the character "~" replace it with "tilda".
-  //   Write "None" if the user did not ask to make any notes.
-  //   Do NOT write anything extra. Do NOT write to-do's or tasks.`)]);
-  //   console.log(newNotes.text)
-  //   if (newNotes.text != "None") {
-  //   for (let i=0; i<newNotes.text.split("====").length; i++){
-  //     console.log(`${newNotes.text.split("====")[i].split("~")[0]},${newNotes.text.split("====")[i].split("~")[1]}`)
-  //     setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
-  //     localForage.setItem("notes", notes);
-  //   }
-  // }
     setLoadingSave(false);
     handleReset();
   };
@@ -225,11 +212,12 @@ export default function App() {
   const handleUndo = () => {
     setThoughts(lastThought);
     localForage.setItem("importantItems",String(lastThought));
-
   };
 
   const handleThoughtsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+    e.target.style.height = '';
+    e.target.style.height = e.target.scrollHeight +'px';
     if (value.length > 1000) {
       alert("Message limit is 1000 characters");
       return;
@@ -237,6 +225,9 @@ export default function App() {
 
     setThoughts(value);
   };
+
+
+
 
   useEffect(() => {
     scrollToBottom();
@@ -254,10 +245,6 @@ export default function App() {
         setThoughts(String(await localForage.getItem("importantItems")));
         setLastThought(String(await localForage.getItem("importantItems")));
       }
-      // if (await localForage.getItem("notes") != null){
-      //   let localNotes:any = await localForage.getItem("notes");
-      //   setNotes(localNotes);
-      // }
     }
     setInitials();
   }, []);
@@ -295,20 +282,13 @@ export default function App() {
             <div className="flex-col">
               <p className="font-sans text-xl">AssistGPT's Persistent Memory:</p>
             <div className="font-sans py-2">
-            <textarea          
+            <textarea   
           value={thoughts}
         onChange={handleThoughtsChange}
- name="Thoughts" id="Thoughts"  className="block w-full h-full rounded-md border px-3.5 py-2 text-gray-900" />
+ name="Thoughts" id="Thoughts"  className="block overflow-hidden w-full h-full rounded-md border px-3.5 py-2 text-gray-900" />
               </div></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
-            {/* {Array.from(notes.keys()).map((key) => (
-            <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
-            <div className="flex-col">
-                              <><div className="font-sans text-xl">{key}</div><div className="font-sans py-2">{notes.get(key)}</div></>
-              </div>
-              </div>
-              ))} */}
         </div>
       </div>
 
