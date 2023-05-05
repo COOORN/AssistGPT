@@ -18,7 +18,6 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import {UndoThoughts} from "@/components/Chat/UndoThoughts"
-import {Thoughts} from "@/components/Memory/Thoughts"
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -299,7 +298,7 @@ export default function App() {
             <textarea          
           value={thoughts}
         onChange={handleThoughtsChange}
- name="Thoughts" id="Thoughts" className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+ name="Thoughts" id="Thoughts"  className="block w-full rounded-md border-2 px-3.5 py-2 text-gray-900" />
               </div></div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
