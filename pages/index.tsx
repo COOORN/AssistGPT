@@ -1,5 +1,4 @@
 import { Chat } from "@/components/Chat/Chat";
-import { Footer } from "@/components/Layout/Footer";
 import { Navbar } from "@/components/Layout/Navbar";
 import { Message } from "@/types";
 import Head from "next/head";
@@ -64,14 +63,14 @@ export default function Home () {
           href="/favicon.ico"
         />
       </Head>
+      <Navbar />
+      <div className="dark:bg-neutral-900 flex flex-col h-screen">
 
-      <div className="flex flex-col h-screen">
-        <Navbar />
 
         <div className="flex-1 overflow-auto sm:px-10 pb-4 sm:pb-10">
           <div className="max-w-[800px] mx-auto mt-4 sm:mt-12">
           <div className="sm:col-span- mx-auto">
-        <label className=" block text-sm font-semibold leading-6 text-gray-900">OpenAI Key - Just click go to app if you have previously entered the key before</label>
+        <label className="block text-sm font-semibold leading-6 text-gray-900 dark:text-white">OpenAI Key - Just click go to app if you have previously entered the key before</label>
         <div className="mt-2.5">
           <textarea          
           value={content}
@@ -85,7 +84,6 @@ export default function Home () {
       </div>
           </div>
         </div>
-        <Footer />
       </div>
         </>
 

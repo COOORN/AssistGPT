@@ -1,5 +1,4 @@
 import { Chat } from "@/components/Chat/Chat";
-import { Footer } from "@/components/Layout/Footer";
 import { Navbar } from "@/components/Layout/Navbar";
 import { Message } from "@/types";
 import Head from "next/head";
@@ -275,9 +274,10 @@ export default function App() {
           href="/favicon.ico"
         />
       </Head>
-      <Navbar />
+<div className="dark:bg-neutral-900 h-screen">
+<Navbar />
 
-      <div className="md:grid md:grid-cols-5 sm:flex sm:flex-col">
+      <div className="mx:2 md:grid md:grid-cols-5 sm:flex sm:flex-col">
 
         <div className="md:col-span-4 overflow-auto px-4 py-4">
             <Chat
@@ -291,27 +291,21 @@ export default function App() {
             <div ref={messagesEndRef} />
         </div>
         <div className="col-span-1">
-          <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
+          <div className="dark:bg-neutral-800 rounded-lg border dark:border-black border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
-              <p className="font-sans text-xl">AssistGPT's Persistent Memory:</p>
+              <p className="font-sans text-xl dark:text-white">AssistGPT's Persistent Memory:</p>
             <div className="font-sans py-2">
             <textarea          
-          value={thoughts}
-        onChange={handleThoughtsChange}
- name="Thoughts" id="Thoughts"  className="block w-full h-full rounded-md border px-3.5 py-2 text-gray-900" />
-              </div></div>
+            value={thoughts}
+            onChange={handleThoughtsChange}
+            name="Thoughts" id="Thoughts"  className="block w-full h-full rounded-md px-3.5 py-2 border dark:border-none text-gray-900 dark:text-white dark:bg-neutral-700 dark:focus:ring-black" />
+              </div>
+            </div>
             <UndoThoughts onUndo={handleUndo} />
             </div>
-            {/* {Array.from(notes.keys()).map((key) => (
-            <div className="rounded-lg border border-neutral-300 px-4 py-4 mx-4 my-4">
-            <div className="flex-col">
-                              <><div className="font-sans text-xl">{key}</div><div className="font-sans py-2">{notes.get(key)}</div></>
-              </div>
-              </div>
-              ))} */}
         </div>
       </div>
-
+</div>
     </>
   );
   }

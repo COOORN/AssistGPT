@@ -28,7 +28,7 @@ export const Chat: FC<Props> = ({ messages, loading, onSend,
         <>
 
 
-      <div className="flex flex-col rounded-lg px-4 py-4 border border-neutral-300 gap-3">
+      <div className="flex flex-col rounded-lg px-4 py-4 border dark:bg-neutral-800 dark:border-black border-neutral-300 gap-3">
         {messages.map((message, index) => (
           <div
             key={index}
