@@ -53,7 +53,7 @@ export default function Home() {
       <div className="dark:bg-neutral-900 flex flex-col h-screen">
         <Navbar />
 
-        <div className="grid-cols-1 mx-auto my-auto">
+        <div className="grid-cols-1 mx-auto my-4">
           <label className="block text-sm font-semibold leading-6 text-gray-900 dark:text-white">
             OpenAI Key - Just click go to app if you have previously entered the
             key before

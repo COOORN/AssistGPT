@@ -16,7 +16,6 @@ import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
-import { UndoThoughts } from "@/components/Memory/UndoThoughts";
 import { Thoughts } from "@/components/Memory/Thoughts";
 import { Vectors } from "@/components/Memory/Vectors";
 
@@ -214,7 +213,7 @@ export default function App() {
     if (thoughts == "") {
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      If the user asked to set a task or to-do or remember something important, answer in markdown
+      If the user asked to set a task or to-do or remember something important, note it down in a markdown list
       and use specific dates when possible.
       Do NOT write anything extra.`),
       ]);
@@ -226,7 +225,6 @@ export default function App() {
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
       These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
       Update the list if there are updates to or new tasks or todo's or important things to remember.
-      Follow the user's instructions in the message history. 
       Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
       Write in markdown.
