@@ -103,11 +103,8 @@ export default function App() {
       vectors.forEach(async (values: Document[], keys: number[][]) => {
         await vectorStore.addVectors(keys, values);
       });
-      // const results = await vectorStore.similaritySearch(message.content, 5);
       contextInjection = "";
-      const results = await vectorStore
-        .asRetriever()
-        .getRelevantDocuments(message.content);
+      const results = await vectorStore.similaritySearch(message.content, 10);
       for (let i = 0; i < results.length; i++) {
         // if (results[i][1] > 0.5){
         contextInjection = contextInjection.concat(
