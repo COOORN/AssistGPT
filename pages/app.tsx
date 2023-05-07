@@ -17,6 +17,8 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import {UndoThoughts} from "@/components/Chat/UndoThoughts"
+import { Thoughts } from "@/components/Memory/Thoughts";
+
 
 const today = new Date();
 const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -54,9 +56,9 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 })
   const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
     HumanMessagePromptTemplate.fromTemplate(
-      `You are AssistGPT, a helpful, friendly AI chatbot that helps the user.
+      `You are AssistGPT, a helpful, friendly AI friend that helps the user.
        Today is ${dateString}.
-         These are the user's important items you need to remember from past conversations: "{importantItems}".
+         These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
          These are relevant past conversations with the user you can use to assist answering questions, where you are "assistant" and the user is "user": "{historicalData}".
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
     ),
@@ -175,9 +177,9 @@ export default function App() {
 
     if (thoughts == "None!") {
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-       If the user asked for you to remember something important, return neatly formatted response.
-      Use specific dates when possible. Otherwise write "None".
-       Do NOT write anything extra.`)])
+      If the user asked to set a task or to-do or remember something important, answer in markdown
+      and use specific dates when possible. Otherwise write "None".
+      Do NOT write anything extra.`)])
       localForage.setItem("importantItems", importantItems.text);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -185,28 +187,16 @@ export default function App() {
     else {
       setLastThought(thoughts);
       const importantItems = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      These are the current important things to remember for the user: "${thoughts}".
-      Update the list if there are updates to the important things to remember. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
+      These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
+      Update the list if there are updates to or new tasks or todo's or important things to remember. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
-      Format the list neatly.
+      Format the list in markdown.
       Do NOT write anything extra.
       `)])
       localForage.setItem("importantItems",String(importantItems.text));
       setThoughts(importantItems.text);
     }
 
-  //   const newNotes = await chat.call([new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-  //   Make any notes that the user asked to be written for them and write them in the format "title~content====title2~content". For example, a sample note could be "Favorite color~Green====Favorite movie~Inception". If the note includes the character "~" replace it with "tilda".
-  //   Write "None" if the user did not ask to make any notes.
-  //   Do NOT write anything extra. Do NOT write to-do's or tasks.`)]);
-  //   console.log(newNotes.text)
-  //   if (newNotes.text != "None") {
-  //   for (let i=0; i<newNotes.text.split("====").length; i++){
-  //     console.log(`${newNotes.text.split("====")[i].split("~")[0]},${newNotes.text.split("====")[i].split("~")[1]}`)
-  //     setNotes(new Map(notes.set(newNotes.text.split("====")[i].split("~")[0],newNotes.text.split("====")[i].split("~")[1])));
-  //     localForage.setItem("notes", notes);
-  //   }
-  // }
     setLoadingSave(false);
     handleReset();
   };
@@ -229,6 +219,7 @@ export default function App() {
 
   const handleThoughtsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+
     if (value.length > 1000) {
       alert("Message limit is 1000 characters");
       return;
@@ -259,6 +250,7 @@ export default function App() {
       // }
     }
     setInitials();
+
   }, []);
 
   return (
@@ -277,7 +269,7 @@ export default function App() {
 <div className="dark:bg-neutral-900 h-screen">
 <Navbar />
 
-      <div className="mx:2 md:grid md:grid-cols-5 sm:flex sm:flex-col">
+      <div className="bg-inherit mx:2 md:grid md:grid-cols-5 sm:flex sm:flex-col">
 
         <div className="md:col-span-4 overflow-auto px-4 py-4">
             <Chat
@@ -291,19 +283,16 @@ export default function App() {
             <div ref={messagesEndRef} />
         </div>
         <div className="col-span-1">
-          <div className="dark:bg-neutral-800 rounded-lg border dark:border-black border-neutral-300 px-4 py-4 mx-4 my-4">
+        <div className="dark:bg-neutral-800 rounded-lg border dark:border-black border-neutral-300 px-4 py-4 mx-4 my-4">
             <div className="flex-col">
               <p className="font-sans text-xl dark:text-white">AssistGPT's Persistent Memory:</p>
             <div className="font-sans py-2">
-            <textarea          
-            value={thoughts}
-            onChange={handleThoughtsChange}
-            name="Thoughts" id="Thoughts"  className="block w-full h-full rounded-md px-3.5 py-2 border dark:border-none text-gray-900 dark:text-white dark:bg-neutral-700 dark:focus:ring-black" />
+            <Thoughts onThoughtsChange={handleThoughtsChange} thoughts={thoughts} />
               </div>
             </div>
             <UndoThoughts onUndo={handleUndo} />
-            </div>
         </div>
+      </div>
       </div>
 </div>
     </>
