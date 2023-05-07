@@ -47,7 +47,7 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingSave, setLoadingSave] = useState<boolean>(false);
 
-  const [thoughts, setThoughts] = useState<string>("None!");
+  const [thoughts, setThoughts] = useState<string>("");
   const [lastThought, setLastThought] = useState<string>("");
 
   const [vectorsString, setVectorsString] = useState<string>("");
@@ -116,7 +116,7 @@ export default function App() {
         }
       }
     }
-    if (thoughts == "None!") {
+    if (thoughts == "") {
       console.log(
         `History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`
       );
@@ -126,7 +126,7 @@ export default function App() {
         messageHistory: messageHistory,
         text: message.content,
       });
-    } else if (thoughts != "None!") {
+    } else if (thoughts != "") {
       console.log(
         `History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`
       );
@@ -164,8 +164,7 @@ export default function App() {
 
   const handleSave = async () => {
     setLoadingSave(true);
-
-
+    
     const key = String(await localForage.getItem("APIKEY"));
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0 });
 
@@ -206,17 +205,19 @@ export default function App() {
       const vectorKey = await embedder.embedDocuments(docStrings);
       vectors.set(vectorKey, docs);
       setVectorsString(JSON.stringify(Array.from(vectors.entries())))
+
     }
 
-    if (thoughts == "None!") {
+    if (thoughts == "") {
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      If the user asked to set a task or to-do or remember something important, answer in markdown
-      and use specific dates when possible. Otherwise write "None!".
+      If the user asked to set a task or to-do or remember something important, answer neatly formatted
+      and use specific dates when possible.
       Do NOT write anything extra.`),
       ]);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
+
     } else {
       setLastThought(thoughts);
       const importantItems = await chat.call([
@@ -224,15 +225,13 @@ export default function App() {
       These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
       Update the list if there are updates to or new tasks or todo's or important things to remember. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
-      Format the list in markdown.
       Do NOT write anything extra.
       `),
       ]);
       setThoughts(importantItems.text);
     }
 
-    localForage.setItem("importantItems", thoughts);
-    localForage.setItem("vectorStoreData", vectorsString);
+
 
     setLoadingSave(false);
     handleReset();
@@ -247,9 +246,9 @@ export default function App() {
     ]);
   };
 
-  const handleUndo = () => {
+  const handleUndo = async () => {
     setThoughts(lastThought);
-    localForage.setItem("importantItems", String(lastThought));
+    await localForage.setItem("importantItems", String(lastThought));
   };
 
   const handleThoughtsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -272,6 +271,8 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
+    localForage.setItem("vectorStoreData", vectorsString);
+    localForage.setItem("importantItems", thoughts);
   }, [messages]);
 
   useEffect(() => {
