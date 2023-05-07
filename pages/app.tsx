@@ -51,21 +51,25 @@ export default function App() {
   const [lastThought, setLastThought] = useState<string>("");
 
   const [vectorsString, setVectorsString] = useState<string>("");
-  
+
+  const [apiKey, setAPIKey] = useState<string>("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [isInitiated, setIsInitiated] = useState<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSend = async (message: Message) => {
+  async function handleSend(message: Message) {
     setLoading(true);
 
     const updatedMessages = [...messages, message];
-    if ((await localForage.getItem("APIKEY")) == null) {
+    if (/^sk-/.test(apiKey) != true) {
       alert("API key not provided");
     }
-    const key = String(await localForage.getItem("APIKEY"));
+    const key = apiKey;
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       HumanMessagePromptTemplate.fromTemplate(
@@ -93,7 +97,7 @@ export default function App() {
     }
     let contextInjection = "NO PAST CONVERSATIONS";
     if (vectorsString != "") {
-      let vectors: any = new Map(JSON.parse(vectorsString))
+      let vectors: any = new Map(JSON.parse(vectorsString));
       let vectorStore: MemoryVectorStore = new MemoryVectorStore(
         new OpenAIEmbeddings({ openAIApiKey: key })
       );
@@ -160,12 +164,12 @@ export default function App() {
         return [...messages.slice(0, -1), updatedMessage];
       });
     }
-  };
+  }
 
-  const handleSave = async () => {
+  async function handleSave() {
     setLoadingSave(true);
-    
-    const key = String(await localForage.getItem("APIKEY"));
+
+    const key = apiKey;
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0 });
 
     let messageHistory: string = "";
@@ -195,60 +199,58 @@ export default function App() {
       }
       const vectorKey = await embedder.embedDocuments(docStrings);
       vectors.set(vectorKey, docs);
-      setVectorsString(JSON.stringify(Array.from(vectors.entries())))
+      setVectorsString(JSON.stringify(Array.from(vectors.entries())));
     } else {
-      let vectors: any = new Map(JSON.parse(vectorsString))
+      let vectors: any = new Map(JSON.parse(vectorsString));
       for (let i = 0; i < output.length; i++) {
         docs.push(output[i]);
         docStrings.push(output[i].pageContent);
       }
       const vectorKey = await embedder.embedDocuments(docStrings);
       vectors.set(vectorKey, docs);
-      setVectorsString(JSON.stringify(Array.from(vectors.entries())))
-
+      setVectorsString(JSON.stringify(Array.from(vectors.entries())));
     }
 
     if (thoughts == "") {
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      If the user asked to set a task or to-do or remember something important, answer neatly formatted
+      If the user asked to set a task or to-do or remember something important, answer in markdown
       and use specific dates when possible.
       Do NOT write anything extra.`),
       ]);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
-
     } else {
       setLastThought(thoughts);
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
       These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if there are updates to or new tasks or todo's or important things to remember. Follow the user's instructions in the message history. Return the same list if the user did not ask for any changes.
+      Update the list if there are updates to or new tasks or todo's or important things to remember.
+      Follow the user's instructions in the message history. 
+      Return the same list if the user did not ask for any changes.
       Use specific dates when possible.
+      Write in markdown.
       Do NOT write anything extra.
       `),
       ]);
       setThoughts(importantItems.text);
     }
 
-
-
     setLoadingSave(false);
     handleReset();
-  };
+  }
 
-  const handleReset = () => {
+  function handleReset() {
     setMessages([
       {
         role: "assistant",
         content: `Hi there!`,
       },
     ]);
-  };
+  }
 
   const handleUndo = async () => {
     setThoughts(lastThought);
-    await localForage.setItem("importantItems", String(lastThought));
   };
 
   const handleThoughtsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -265,15 +267,8 @@ export default function App() {
   const handleVectorsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
 
-    setVectorsString(value);  
-  
-  }
-
-  useEffect(() => {
-    scrollToBottom();
-    localForage.setItem("vectorStoreData", vectorsString);
-    localForage.setItem("importantItems", thoughts);
-  }, [messages]);
+    setVectorsString(value);
+  };
 
   useEffect(() => {
     setMessages([
@@ -290,12 +285,30 @@ export default function App() {
       if ((await localForage.getItem("vectorStoreData")) != null) {
         setVectorsString(String(await localForage.getItem("vectorStoreData")));
       }
-
+      if ((await localForage.getItem("APIKEY")) != null) {
+        setAPIKey(String(await localForage.getItem("APIKEY")));
+      }
     };
-    setInitials();
+    setInitials().then(() => {
+      setIsInitiated(true);
+    });
   }, []);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
+  useEffect(() => {
+    if (isInitiated) {
+      localForage.setItem("importantItems", thoughts);
+    }
+  }, [thoughts, isInitiated]);
+
+  useEffect(() => {
+    if (isInitiated) {
+      localForage.setItem("vectorStoreData", vectorsString);
+    }
+  }, [isInitiated, vectorsString]);
 
   return (
     <>
@@ -320,8 +333,15 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
           <div className="col-span-1">
-            <Vectors vectors={vectorsString} onVectorsChange={handleVectorsChange} />
-            <Thoughts onThoughtsChange={handleThoughtsChange} onUndo={handleUndo} thoughts={thoughts} />
+            <Vectors
+              vectors={vectorsString}
+              onVectorsChange={handleVectorsChange}
+            />
+            <Thoughts
+              onThoughtsChange={handleThoughtsChange}
+              onUndo={handleUndo}
+              thoughts={thoughts}
+            />
           </div>
         </div>
       </div>

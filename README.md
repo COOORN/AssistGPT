@@ -3,13 +3,14 @@ A GPT client that has long term memory. Designed to be an assistant for task man
 Full privacy: all completely local using localForage(an indexedDB wrapper).
 
 ### To - do not in any order:
- - Web browsing
- - [x] more sustainable and cost effective memory(currently tokenizing all message history each time)
- - import and export data
- - [x] notes - STILL EXPERIMENTAL(removed for now until it becomes useful)
-    - 1. need to add editing and deleting notes
-    - 2. need to let ai access notes
- - [x] viewing to-dos
-  - now can edit
- - better API key auth
 
+- Web browsing
+- [x] more sustainable and cost effective memory(currently tokenizing all message history each time)
+- [x] import and export data
+- 1.  not sure how long term sustainable clipboard is
+- [x] notes - STILL EXPERIMENTAL(removed for now until it becomes useful)
+  - 1. need to add editing and deleting notes
+  - 2. need to let ai access notes
+- [x] viewing to-dos
+- now can edit
+- better API key auth
