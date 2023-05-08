@@ -112,7 +112,12 @@ export default function App() {
         model,
         vectorStore.asRetriever()
       );
-      const results = await retrievalChain.call({ query: message.content });
+      const results = await retrievalChain.call({
+        query:
+          "You are an AI that searches for relevant information for another AI. Find information on the following query: " +
+          message.content +
+          ". Write 'No context' if you cannot find information.",
+      });
       contextInjection = results.text;
     }
     if (thoughts == "") {
