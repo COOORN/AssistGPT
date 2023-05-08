@@ -115,7 +115,7 @@ export default function App() {
       const results = await retrievalChain.call({
         query:
           "You are an AI that searches for relevant information for another AI. Find information on the following query: " +
-          message.content",
+          message.content
       });
       contextInjection = results.text;
     }
