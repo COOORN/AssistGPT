@@ -72,7 +72,7 @@ export default function App() {
     }
     const key = apiKey;
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 });
-    const model = new OpenAI({ openAIApiKey: key, temperature: 0.5 });
+    const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       HumanMessagePromptTemplate.fromTemplate(
         `You are AssistGPT, a helpful, friendly AI friend that helps the user.
