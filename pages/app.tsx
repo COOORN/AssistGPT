@@ -14,10 +14,12 @@ import {
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { RetrievalQAChain } from "langchain/chains";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import { Thoughts } from "@/components/Memory/Thoughts";
 import { Vectors } from "@/components/Memory/Vectors";
+import { OpenAI } from "langchain/llms/openai";
 
 const today = new Date();
 const monthNames = [
@@ -70,12 +72,13 @@ export default function App() {
     }
     const key = apiKey;
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 });
+    const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       HumanMessagePromptTemplate.fromTemplate(
         `You are AssistGPT, a helpful, friendly AI friend that helps the user.
        Today is ${dateString}.
          These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
-         These are relevant past conversations with the user you can use to assist answering questions, where you are "assistant" and the user is "user": "{historicalData}".
+         These is relevant past information to help you assist the user.: "{historicalData}".
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
@@ -105,19 +108,17 @@ export default function App() {
       });
       // const results = await vectorStore.similaritySearch(message.content, 5);
       contextInjection = "";
-      const results = await vectorStore
-        .asRetriever()
-        .getRelevantDocuments(message.content);
-      for (let i = 0; i < results.length; i++) {
-        // if (results[i][1] > 0.5){
-        contextInjection = contextInjection.concat(
-          `${results[i].pageContent};`
-        );
-        // }
-        if (contextInjection.length > 1000) {
-          break;
-        }
-      }
+      const retrievalChain = RetrievalQAChain.fromLLM(
+        model,
+        vectorStore.asRetriever()
+      );
+      const results = await retrievalChain.call({
+        query:
+          "You are an AI that searches for relevant information for another AI. Find information on the following query: " +
+          message.content +
+          ". Write 'No context' if you cannot find information.",
+      });
+      contextInjection = results.text;
     }
     if (thoughts == "") {
       console.log(
@@ -176,12 +177,12 @@ export default function App() {
     messageHistory = `${dateString}: `;
     for (let i = 0; i < messages.length; i++) {
       messageHistory = messageHistory.concat(
-        `${messages[i].role}: ${messages[i].content};\n `
+        `${messages[i].role}: ${messages[i].content};\n\n `
       );
     }
     const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 100,
-      chunkOverlap: 5,
+      chunkSize: 500,
+      chunkOverlap: 10,
     });
     const output = await splitter.createDocuments([messageHistory]);
     let embedder = new OpenAIEmbeddings({ openAIApiKey: key });
