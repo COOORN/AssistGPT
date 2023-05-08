@@ -78,7 +78,7 @@ export default function App() {
         `You are AssistGPT, a helpful, friendly AI friend that helps the user.
        Today is ${dateString}.
          These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
-         These is relevant past information to help you assist the user.: "{historicalData}".
+         These is relevant past information to help you assist the user: "{historicalData}".
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
@@ -115,8 +115,7 @@ export default function App() {
       const results = await retrievalChain.call({
         query:
           "You are an AI that searches for relevant information for another AI. Find information on the following query: " +
-          message.content +
-          ". Write 'No context' if you cannot find information.",
+          message.content",
       });
       contextInjection = results.text;
     }
