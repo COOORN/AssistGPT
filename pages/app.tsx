@@ -5,7 +5,7 @@ import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
-import { LLMChain } from "langchain/chains";
+import { ConversationalRetrievalQAChain, LLMChain } from "langchain/chains";
 import {
   SystemMessagePromptTemplate,
   HumanMessagePromptTemplate,
@@ -75,10 +75,10 @@ export default function App() {
     const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       HumanMessagePromptTemplate.fromTemplate(
-        `You are AssistGPT, a helpful, friendly AI friend that helps the user.
+        `You are AssistGPT, a helpful, friendly AI that helps the user. You are a very good listener and are very empathetic.
          Today is ${dateString}.
          These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
-         These is relevant past information to help you assist the user: "{historicalData}".
+         These is relevant past information that may help you assist the user: "{historicalData}". (You do not need to use this information if not relevant).
          This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
@@ -108,12 +108,13 @@ export default function App() {
       });
       // const results = await vectorStore.similaritySearch(message.content, 5);
       contextInjection = "";
-      const retrievalChain = RetrievalQAChain.fromLLM(
+      const retrievalChain = ConversationalRetrievalQAChain.fromLLM(
         model,
         vectorStore.asRetriever()
       );
       const results = await retrievalChain.call({
-        query: message.content,
+        question: message.content,
+        chat_history: messageHistory,
       });
       contextInjection = results.text;
     }
