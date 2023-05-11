@@ -77,10 +77,10 @@ export default function App() {
     const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       SystemMessagePromptTemplate.fromTemplate(
-        `You are AssistGPT, an AI friend. You are a very good listener and are very empathetic.
+        `You are AssistGPT, an AI friend with long term memory. You are a very good listener and are very empathetic.
          Today is ${dateString}.
          These are your notes on the user's important items: "{importantItems}".
-         These is information given to you by your long term memory search: "{historicalData}".
+         This is relevant context from your long term memory to help you answer the user: "{historicalData}".
          This is the current conversation with the user in this session: "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
