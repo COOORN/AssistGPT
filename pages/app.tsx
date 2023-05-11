@@ -4,7 +4,7 @@ import { Message } from "@/types";
 import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { HumanChatMessage, SystemChatMessage } from "langchain/schema";
+import { HumanChatMessage } from "langchain/schema";
 import { ConversationalRetrievalQAChain, LLMChain } from "langchain/chains";
 import {
   SystemMessagePromptTemplate,
@@ -14,12 +14,12 @@ import {
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { RetrievalQAChain } from "langchain/chains";
 import localForage from "localforage";
 import { Document } from "langchain/dist/document";
 import { Thoughts } from "@/components/Memory/Thoughts";
 import { Vectors } from "@/components/Memory/Vectors";
 import { OpenAI } from "langchain/llms/openai";
+import { Context } from "@/components/Memory/Context";
 
 const today = new Date();
 const monthNames = [
@@ -53,6 +53,8 @@ export default function App() {
 
   const [vectorsString, setVectorsString] = useState<string>("");
 
+  const [contextInjection, setContextInjection] = useState<string>("");
+
   const [apiKey, setAPIKey] = useState<string>("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,12 +76,13 @@ export default function App() {
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 });
     const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-      HumanMessagePromptTemplate.fromTemplate(
-        `You are AssistGPT, a helpful, friendly AI that helps the user. You are a very good listener and are very empathetic.
+      SystemMessagePromptTemplate.fromTemplate(
+        `You are AssistGPT, an AI assistant with long term memory. You are a very good listener and are very empathetic. You will always try to ask follow up questions to keep the conversation going.
          Today is ${dateString}.
-         These are the user's to-do's and other important items you need to remember from past conversations: "{importantItems}".
-         These is relevant past information that may help you assist the user: "{historicalData}".
-         This is the history of your current conversation with the user in this session, where you are "assistant" and the user is "user": "{messageHistory}"`
+         These are important things you have to remember: "{importantItems}".
+         These are past conversations with the user from your long term memory: "{historicalData}".
+         You will not say you don't know something if there is something in your memory that is relevant.
+         This is the current conversation with the user in this session: "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
     ]);
@@ -97,7 +100,7 @@ export default function App() {
         `${updatedMessages[i].role}: ${updatedMessages[i].content}; `
       );
     }
-    let contextInjection = "NO PAST CONVERSATIONS";
+    let results = "Next conversation snippet: ";
     if (vectorsString != "") {
       let vectors: any = new Map(JSON.parse(vectorsString));
       let vectorStore: MemoryVectorStore = new MemoryVectorStore(
@@ -106,41 +109,29 @@ export default function App() {
       vectors.forEach(async (values: Document[], keys: number[][]) => {
         await vectorStore.addVectors(keys, values);
       });
-      // const results = await vectorStore.similaritySearch(message.content, 5);
-      contextInjection = "";
-      const retrievalChain = ConversationalRetrievalQAChain.fromLLM(
-        model,
-        vectorStore.asRetriever()
-      );
-      const results = await retrievalChain.call({
-        question:
-          "Refer to the user as 'User'(do not use the pronoun 'you') and answer concisely:" +
-          message.content,
-        chat_history: messageHistory,
-      });
-      contextInjection = results.text;
+
+      const response = await vectorStore
+        .asRetriever()
+        .getRelevantDocuments(messageHistory);
+
+      for (let i = 0; i < response.length; i++) {
+        results = results.concat(
+          response[i].pageContent + "\n\nNext conversation snippet: "
+        );
+      }
+      setContextInjection(results);
     }
-    if (thoughts == "") {
-      console.log(
-        `History:${messageHistory} <==> Important: NONE SO FAR <==> Context: ${contextInjection}`
-      );
-      var response = await chain.call({
-        importantItems: "NONE",
-        historicalData: contextInjection,
-        messageHistory: messageHistory,
-        text: message.content,
-      });
-    } else if (thoughts != "") {
-      console.log(
-        `History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`
-      );
-      var response = await chain.call({
-        importantItems: thoughts,
-        historicalData: contextInjection,
-        messageHistory: messageHistory,
-        text: message.content,
-      });
-    }
+    console.log(
+      `History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${results}`
+    );
+
+    var response = await chain.call({
+      importantItems: thoughts,
+      historicalData: results,
+      messageHistory: messageHistory,
+      text: message.content,
+    });
+
     let isFirst = true;
 
     if (isFirst) {
@@ -214,9 +205,9 @@ export default function App() {
     if (thoughts == "") {
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      If the user asked to set a task or to-do or remember something important, note it down in a markdown list
-      and use specific dates when possible.
-      Do NOT write anything extra.`),
+      Only if the user specifically asked to remember something important, summarize it.
+      Do NOT write anything extra.
+      Be SPECIFIC with dates.`),
       ]);
       setThoughts(importantItems.text);
       setLastThought(importantItems.text);
@@ -224,12 +215,11 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      These are the current to-do's or important things to remember of the user you are in charge of keeping track of: "${thoughts}".
-      Update the list if there are updates to or new tasks or todo's or important things to remember.
-      Return the same list if the user did not ask for any changes.
-      Use specific dates when possible.
-      Write in markdown.
+      These are the current important things to remember for the user: "${thoughts}".
+      If the user specifically discussed important items to remember, append the list with updates to important things to remember.
+      Delete anything the user requests to delete.
       Do NOT write anything extra.
+      Be SPECIFIC with dates.
       `),
       ]);
       setThoughts(importantItems.text);
@@ -256,7 +246,7 @@ export default function App() {
     const value = e.target.value;
 
     if (value.length > 1000) {
-      alert("Message limit is 1000 characters");
+      alert("Thoughts limit is 1000 characters");
       return;
     }
 
@@ -284,6 +274,7 @@ export default function App() {
       if ((await localForage.getItem("vectorStoreData")) != null) {
         setVectorsString(String(await localForage.getItem("vectorStoreData")));
       }
+
       if ((await localForage.getItem("APIKEY")) != null) {
         setAPIKey(String(await localForage.getItem("APIKEY")));
       }
@@ -332,14 +323,15 @@ export default function App() {
             <div ref={messagesEndRef} />
           </div>
           <div className="col-span-1">
-            <Vectors
-              vectors={vectorsString}
-              onVectorsChange={handleVectorsChange}
-            />
             <Thoughts
               onThoughtsChange={handleThoughtsChange}
               onUndo={handleUndo}
               thoughts={thoughts}
+            />
+            <Context context={contextInjection} />
+            <Vectors
+              vectors={vectorsString}
+              onVectorsChange={handleVectorsChange}
             />
           </div>
         </div>
