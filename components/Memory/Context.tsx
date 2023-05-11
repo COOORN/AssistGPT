@@ -2,11 +2,10 @@ import { FC } from "react";
 import { useEffect, useRef, useState } from "react";
 
 interface Props {
-  onContextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   context: string;
 }
 
-export const Context: FC<Props> = ({ context, onContextChange }) => {
+export const Context: FC<Props> = ({ context }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -25,7 +24,6 @@ export const Context: FC<Props> = ({ context, onContextChange }) => {
         <div className="font-sans py-2">
           <textarea
             value={context}
-            onChange={onContextChange}
             name="Context"
             id="Context"
             ref={textareaRef}

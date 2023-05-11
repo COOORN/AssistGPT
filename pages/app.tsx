@@ -99,7 +99,7 @@ export default function App() {
         `${updatedMessages[i].role}: ${updatedMessages[i].content}; `
       );
     }
-
+    let results = "";
     if (vectorsString != "") {
       let vectors: any = new Map(JSON.parse(vectorsString));
       let vectorStore: MemoryVectorStore = new MemoryVectorStore(
@@ -109,25 +109,32 @@ export default function App() {
         await vectorStore.addVectors(keys, values);
       });
 
-      const retrievalChain = ConversationalRetrievalQAChain.fromLLM(
-        model,
-        vectorStore.asRetriever()
-      );
-      const results = await retrievalChain.call({
-        question:
-          "Answer concisely in third person, referring to the user as 'The User' or by name:" +
-          message.content,
-        chat_history: messageHistory,
-      });
-      setContextInjection(results.text);
+      // const retrievalChain = ConversationalRetrievalQAChain.fromLLM(
+      //   model,
+      //   vectorStore.asRetriever()
+      // );
+      // const response = await retrievalChain.call({
+      //   question:
+      //     "Answer in third person, referring to the user as 'The User' or by name:" +
+      //     message.content,
+      //   chat_history: messageHistory,
+      // });
+      const response = await vectorStore
+        .asRetriever()
+        .getRelevantDocuments(message.content);
+      // results = response.text;
+      for (let i = 0; i < response.length; i++) {
+        results = results.concat(response[i].pageContent);
+      }
+      setContextInjection(results);
     }
-
     console.log(
-      `History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${contextInjection}`
+      `History:${messageHistory} <==> Important: ${thoughts} <==> Context: ${results}`
     );
+
     var response = await chain.call({
       importantItems: thoughts,
-      historicalData: contextInjection,
+      historicalData: results,
       messageHistory: messageHistory,
       text: message.content,
     });
@@ -253,17 +260,6 @@ export default function App() {
     setThoughts(value);
   };
 
-  const handleContextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-
-    if (value.length > 1000) {
-      alert("Context limit is 1000 characters");
-      return;
-    }
-
-    setContextInjection(value);
-  };
-
   const handleVectorsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
 
@@ -339,10 +335,7 @@ export default function App() {
               onUndo={handleUndo}
               thoughts={thoughts}
             />
-            <Context
-              onContextChange={handleContextChange}
-              context={contextInjection}
-            />
+            <Context context={contextInjection} />
             <Vectors
               vectors={vectorsString}
               onVectorsChange={handleVectorsChange}
