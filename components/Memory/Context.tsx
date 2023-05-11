@@ -27,7 +27,7 @@ export const Context: FC<Props> = ({ context }) => {
             name="Context"
             id="Context"
             ref={textareaRef}
-            className="block resize-none w-full h-full rounded-md px-2 py-2 border dark:border-none text-gray-900 dark:text-white dark:bg-neutral-700 dark:focus:ring-black overflow-hidden"
+            className="block w-full h-full rounded-md px-2 py-2 border dark:border-none text-gray-900 dark:text-white dark:bg-neutral-700 dark:focus:ring-black overflow-hidden"
           />
         </div>
       </div>

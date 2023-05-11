@@ -77,10 +77,11 @@ export default function App() {
     const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
       SystemMessagePromptTemplate.fromTemplate(
-        `You are AssistGPT, an AI friend. You are a very good listener and are very empathetic.
+        `You are AssistGPT, an AI assistant with long term memory. You are a very good listener and are very empathetic. You will always try to ask follow up questions to keep the conversation going.
          Today is ${dateString}.
-         These are your notes on the user's important items: "{importantItems}".
-         These is information given to you by your long term memory search: "{historicalData}".
+         These are important things you have to remember: "{importantItems}".
+         These are past conversations with the user from your long term memory: "{historicalData}".
+         You will not say you don't know something if there is something in your memory that is relevant.
          This is the current conversation with the user in this session: "{messageHistory}"`
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
@@ -99,7 +100,7 @@ export default function App() {
         `${updatedMessages[i].role}: ${updatedMessages[i].content}; `
       );
     }
-    let results = "";
+    let results = "Next conversation snippet: ";
     if (vectorsString != "") {
       let vectors: any = new Map(JSON.parse(vectorsString));
       let vectorStore: MemoryVectorStore = new MemoryVectorStore(
@@ -109,22 +110,14 @@ export default function App() {
         await vectorStore.addVectors(keys, values);
       });
 
-      // const retrievalChain = ConversationalRetrievalQAChain.fromLLM(
-      //   model,
-      //   vectorStore.asRetriever()
-      // );
-      // const response = await retrievalChain.call({
-      //   question:
-      //     "Answer in third person, referring to the user as 'The User' or by name:" +
-      //     message.content,
-      //   chat_history: messageHistory,
-      // });
       const response = await vectorStore
         .asRetriever()
-        .getRelevantDocuments(message.content);
-      // results = response.text;
+        .getRelevantDocuments(messageHistory);
+
       for (let i = 0; i < response.length; i++) {
-        results = results.concat(response[i].pageContent);
+        results = results.concat(
+          response[i].pageContent + "\n\nNext conversation snippet: "
+        );
       }
       setContextInjection(results);
     }
