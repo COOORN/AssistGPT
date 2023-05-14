@@ -1,28 +1,9 @@
-# ---- Base Node ----
-FROM node:19-alpine AS base
-WORKDIR /app
-COPY package*.json ./
-
-# ---- Dependencies ----
-FROM base AS dependencies
-RUN npm ci
-
-# ---- Build ----
-FROM dependencies AS build
+FROM node:lts-alpine
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
+RUN npm install --production --silent && mv node_modules ../
 COPY . .
-RUN npm run build
-
-# ---- Production ----
-FROM node:19-alpine AS production
-WORKDIR /app
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/next.config.js ./next.config.js
-
-# Expose the port the app will run on
 EXPOSE 3000
-
-# Start the application
-CMD ["npm", "start"]
+RUN chown -R node /usr/src/app
+USER node
