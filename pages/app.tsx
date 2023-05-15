@@ -79,8 +79,8 @@ export default function App() {
       SystemMessagePromptTemplate.fromTemplate(
         `You are AssistGPT, an AI assistant with long term memory. You are a very good listener and are very empathetic. You will always try to ask follow up questions to keep the conversation going.
          Today is ${dateString}.
-         These are important things you have to remember: "{importantItems}".
-         These are past conversations with the user from your long term memory: "{historicalData}".
+         These are important things you have to remember from your persistent memory: "{importantItems}".
+         These are past conversations with the user from your long term memory to provide context: "{historicalData}".
          You will not say you don't know something if there is something in your memory that is relevant.
          This is the current conversation with the user in this session: "{messageHistory}"`
       ),
@@ -205,7 +205,8 @@ export default function App() {
     if (thoughts == "") {
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      Only if the user specifically asked to remember something important, summarize it.
+      You are tasked with making a persistent memory with only the most important things to remember for the AI.
+      Only if the user specifically asked to remember something important or add to persistent memory, summarize it.
       Do NOT write anything extra.
       Be SPECIFIC with dates.`),
       ]);
@@ -215,8 +216,9 @@ export default function App() {
       setLastThought(thoughts);
       const importantItems = await chat.call([
         new HumanChatMessage(`This is the message history between the user and an AI: "${messageHistory}".
-      These are the current important things to remember for the user: "${thoughts}".
-      If the user specifically discussed important items to remember, append the list with updates to important things to remember.
+        You are tasked with making a persistent memory with only the most important things to remember for the AI.
+      These are the current important things to remember for the user in persistent memory: "${thoughts}".
+      If the user specifically discussed important items to remembe or to add to persistent memory, append the list with updates to important things to remember.
       Delete anything the user requests to delete.
       Do NOT write anything extra.
       Be SPECIFIC with dates.
