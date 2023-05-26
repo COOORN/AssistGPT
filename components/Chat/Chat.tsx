@@ -13,9 +13,10 @@ interface Props {
   onSend: (message: Message) => void;
   onSave: () => void;
   loadingSave: boolean;
+  totalTokens: number;
 }
 
-export const Chat: FC<Props> = ({ messages, loading, onSend, onSave, loadingSave }) => {
+export const Chat: FC<Props> = ({ messages, loading, onSend, onSave, loadingSave, totalTokens }) => {
 
       return (
         <>
@@ -40,9 +41,13 @@ export const Chat: FC<Props> = ({ messages, loading, onSend, onSave, loadingSave
         <div className="mt-4 sm:mt-8 bottom-[56px] left-0 w-full">
           <ChatInput onSend={onSend} />
         </div>
-        <div className="flex flex-row">
+        <div className="grid grid-cols-4">
+          <div className="grid col-start-1 col-span-1">
       <SaveChat loadingSave = {loadingSave} onSave={onSave}></SaveChat>
+      </div>
+          <div className="grid col-start-4 col-span-1"><p className="text-sm flex flex-row-reverse text-white">About {totalTokens}/3800 tokens used</p></div>
     </div>
+
 
       </div> 
 

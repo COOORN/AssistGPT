@@ -20,6 +20,8 @@ import { Thoughts } from "@/components/Memory/Thoughts";
 import { Vectors } from "@/components/Memory/Vectors";
 import { OpenAI } from "langchain/llms/openai";
 import { Context } from "@/components/Memory/Context";
+import assert from "node:assert";
+import { get_encoding, encoding_for_model } from "tiktoken";
 
 const today = new Date();
 const monthNames = [
@@ -61,6 +63,8 @@ export default function App() {
 
   const [isInitiated, setIsInitiated] = useState<boolean>(false);
 
+  const [totalHistoryLength, setTotalHistorylength] = useState<number>(0);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -72,17 +76,20 @@ export default function App() {
     if (/^sk-/.test(apiKey) != true) {
       alert("API key not provided");
     }
+    if (totalHistoryLength > 3500) {
+      alert("Current conversation limit approaching! Consider Saving to not lose this conversation.");
+    }
     const key = apiKey;
     const chat = new ChatOpenAI({ openAIApiKey: key, temperature: 0.7 });
     const model = new OpenAI({ openAIApiKey: key, temperature: 0 });
+    const promptString =         `You are AssistGPT, an AI assistant with long term memory. You are a very good listener and are very empathetic. You will always try to ask follow up questions to keep the conversation going.
+    Today is ${dateString}.
+    These are important things you have to remember from your persistent memory: "{importantItems}".
+    These are past conversations with the user from your long term memory to provide context: "{historicalData}".
+    You will not say you don't know something if there is something in your memory that is relevant.
+    This is the current conversation with the user in this session: "{messageHistory}"`
     const assistantPrompt = ChatPromptTemplate.fromPromptMessages([
-      SystemMessagePromptTemplate.fromTemplate(
-        `You are AssistGPT, an AI assistant with long term memory. You are a very good listener and are very empathetic. You will always try to ask follow up questions to keep the conversation going.
-         Today is ${dateString}.
-         These are important things you have to remember from your persistent memory: "{importantItems}".
-         These are past conversations with the user from your long term memory to provide context: "{historicalData}".
-         You will not say you don't know something if there is something in your memory that is relevant.
-         This is the current conversation with the user in this session: "{messageHistory}"`
+      SystemMessagePromptTemplate.fromTemplate(promptString
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
     ]);
@@ -116,7 +123,7 @@ export default function App() {
 
       for (let i = 0; i < response.length; i++) {
         results = results.concat(
-          response[i].pageContent + "\n\nNext conversation snippet: "
+          response[i].pageContent + "\nNext conversation snippet: "
         );
       }
       setContextInjection(results);
@@ -131,6 +138,12 @@ export default function App() {
       messageHistory: messageHistory,
       text: message.content,
     });
+
+    let currentHistoryLength = promptString+thoughts+results+messageHistory+message.content+response.text;
+    const enc = encoding_for_model("gpt-3.5-turbo");
+    let currentHistoryTokens = enc.encode(currentHistoryLength);
+ 
+    setTotalHistorylength(currentHistoryTokens.length);
 
     let isFirst = true;
 
@@ -168,7 +181,7 @@ export default function App() {
     messageHistory = `${dateString}: `;
     for (let i = 0; i < messages.length; i++) {
       messageHistory = messageHistory.concat(
-        `${messages[i].role}: ${messages[i].content};\n\n `
+        `${messages[i].role}: ${messages[i].content};\n `
       );
     }
     const splitter = new RecursiveCharacterTextSplitter({
@@ -321,6 +334,7 @@ export default function App() {
               // onReset={handleReset}
               onSave={handleSave}
               loadingSave={loadingSave}
+              totalTokens={totalHistoryLength}
             />
             <div ref={messagesEndRef} />
           </div>
