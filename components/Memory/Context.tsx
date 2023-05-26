@@ -8,13 +8,6 @@ interface Props {
 export const Context: FC<Props> = ({ context }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    textareaRef.current?.style.setProperty("height", "");
-    textareaRef.current?.style.setProperty(
-      "height",
-      `${textareaRef.current?.scrollHeight}px`
-    );
-  });
   return (
     <div className="dark:bg-neutral-800 rounded-lg border dark:border-black border-neutral-300 px-4 py-4 mx-4 my-4">
       <div className="flex-col">
